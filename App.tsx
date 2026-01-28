@@ -424,7 +424,7 @@ const SkillTreeSimulator = () => {
           minZoom={0.05}
           maxZoom={2}
           nodesConnectable={false}
-          nodesDraggable={true}
+          nodesDraggable={false}
         >
           <Background color="#ffffff" variant={BackgroundVariant.Lines} gap={80} size={0.5} style={{ opacity: 0.02 }} />
           <RadialBackground />
