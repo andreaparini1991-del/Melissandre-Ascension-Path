@@ -134,9 +134,15 @@ const SkillTreeSimulator = () => {
   const updateEdgeStatus = useCallback((currentNodes: Node<SkillNodeData>[], currentEdges: Edge[]) => {
     return currentEdges.map(e => {
       const sourceNode = currentNodes.find(n => n.id === e.source);
+      const targetNode = currentNodes.find(n => n.id === e.target);
       return { 
         ...e, 
-        data: { ...e.data, isActive: !!sourceNode?.data.isActive } 
+        data: { 
+          ...e.data, 
+          sourceActive: !!sourceNode?.data.isActive,
+          targetActive: !!targetNode?.data.isActive,
+          targetUnlocked: !!targetNode?.data.isUnlocked
+        } 
       };
     });
   }, []);
@@ -186,7 +192,9 @@ const SkillTreeSimulator = () => {
       type: 'custom',
       data: { 
         category: INITIAL_SKILLS.find(s => s.id === conn.source)?.category,
-        isActive: false 
+        sourceActive: false,
+        targetActive: false,
+        targetUnlocked: false
       }
     }));
 
@@ -306,7 +314,7 @@ const SkillTreeSimulator = () => {
       source: conn.source,
       target: conn.target,
       type: 'custom',
-      data: { category: INITIAL_SKILLS.find(s => s.id === conn.source)?.category, isActive: false }
+      data: { category: INITIAL_SKILLS.find(s => s.id === conn.source)?.category, sourceActive: false, targetActive: false, targetUnlocked: false }
     })));
     setIsMenuOpen(false);
     showNotification("Progresso resettato.");
