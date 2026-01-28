@@ -1,0 +1,5 @@
+{
+  "name": "Ascension Path Skill Tree Simulator",
+  "description": "A Dark Fantasy themed skill tree simulator with radial layout, cascading unlock logic, and dynamic currency management.",
+  "requestFramePermissions": []
+}
