@@ -25,12 +25,13 @@ import ControlPanel from './components/ControlPanel';
 import DetailsPanel from './components/DetailsPanel';
 import SideMenu from './components/SideMenu';
 import TableView from './components/TableView';
+import CharacterModal from './components/CharacterModal';
 import { INITIAL_SKILLS, INITIAL_CONNECTIONS } from './constants';
 import { calculateInitialPosition } from './utils/layout';
-import { SkillNodeData, PlayerStats, ViewMode } from './types';
+import { SkillNodeData, PlayerStats, ViewMode, CharacterData } from './types';
 
-// Versione v8: Layout offset-based per hitbox perfette
 const SAVE_KEY = 'ascension_path_save_v8';
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQj7DBJU6sY9yVCZGqijOvr3WTLxBQSjnbhls3FR4w0ILNxaH43rsO0_p8OQxSqlwF5INCs03HZGQaw/pub?gid=7009984&single=true&output=csv';
 
 const nodeTypes = {
   skill: SkillNode,
@@ -55,7 +56,6 @@ const RadialBackground = () => {
   return (
     <div style={viewportStyle}>
       <div className="absolute top-0 left-0">
-        {/* Background Radial sectors */}
         <div 
           className="absolute rounded-full"
           style={{
@@ -77,8 +77,6 @@ const RadialBackground = () => {
             opacity: 0.7
           }}
         />
-
-        {/* Sector Borders */}
         {[30, 90, 150, 210, 270, 330].map(deg => (
           <div 
             key={deg} 
@@ -93,8 +91,6 @@ const RadialBackground = () => {
             }} 
           />
         ))}
-
-        {/* Tier Rings */}
         {[160, 450, 750, 1050, 1350].map(r => (
           <div 
             key={r} 
@@ -108,8 +104,6 @@ const RadialBackground = () => {
             }} 
           />
         ))}
-        
-        {/* Subtle crosshair exactly on (0,0) */}
         <div className="absolute w-10 h-[1px] bg-white/10 -translate-x-1/2 -translate-y-1/2" />
         <div className="absolute h-10 w-[1px] bg-white/10 -translate-x-1/2 -translate-y-1/2" />
       </div>
@@ -126,8 +120,41 @@ const SkillTreeSimulator = () => {
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCharModalOpen, setIsCharModalOpen] = useState(false);
+  const [characters, setCharacters] = useState<CharacterData[]>([]);
+  const [isFetchingChars, setIsFetchingChars] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('radial');
+
+  const fetchCharacters = useCallback(async () => {
+    setIsFetchingChars(true);
+    try {
+      const response = await fetch(CSV_URL);
+      const text = await response.text();
+      const lines = text.split('\n');
+      // Skip header, parse 4 characters
+      const parsed: CharacterData[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const parts = lines[i].split(',');
+        if (parts.length >= 3) {
+          parsed.push({
+            name: parts[0].trim().replace(/^"|"$/g, ''),
+            pa: parseInt(parts[1].trim()) || 0,
+            pe: parseInt(parts[2].trim()) || 0
+          });
+        }
+      }
+      setCharacters(parsed.slice(0, 4));
+    } catch (err) {
+      console.error("Error fetching character data", err);
+    } finally {
+      setIsFetchingChars(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCharacters();
+  }, [fetchCharacters]);
 
   const spentPoints = useMemo(() => {
     return nodes.reduce((acc, node) => {
@@ -390,6 +417,11 @@ const SkillTreeSimulator = () => {
     setIsMenuOpen(false);
   };
 
+  const handleCharacterSelect = (char: CharacterData) => {
+    setStats({ totalAscensionPoints: char.pa, totalEvolutionPoints: char.pe });
+    showNotification(`Budget caricato: ${char.name}`);
+  };
+
   return (
     <div className="w-full h-screen bg-[#060608] relative overflow-hidden font-inter text-gray-200">
       {notification && <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 bg-[#111] border border-[#444] text-white rounded-full font-cinzel text-xs shadow-2xl animate-bounce">{notification}</div>}
@@ -401,8 +433,17 @@ const SkillTreeSimulator = () => {
         onImport={handleImport} 
         onShare={handleShare} 
         onReset={handleReset}
+        onLoadCharacters={() => { setIsMenuOpen(false); setIsCharModalOpen(true); }}
         viewMode={viewMode}
         onViewChange={handleViewChange}
+      />
+
+      <CharacterModal 
+        isOpen={isCharModalOpen} 
+        onClose={() => setIsCharModalOpen(false)} 
+        characters={characters} 
+        onSelect={handleCharacterSelect}
+        isLoading={isFetchingChars}
       />
 
       <ControlPanel 

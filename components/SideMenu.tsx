@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X, Download, Upload, Share2, Trash2, Shield } from 'lucide-react';
+import { X, Download, Upload, Share2, Trash2, Shield, Users } from 'lucide-react';
 import { ViewMode } from '../types';
 
 interface SideMenuProps {
@@ -10,6 +10,7 @@ interface SideMenuProps {
   onImport: () => void;
   onShare: () => void;
   onReset: () => void;
+  onLoadCharacters: () => void;
   viewMode: ViewMode;
   onViewChange: (mode: ViewMode) => void;
 }
@@ -20,7 +21,8 @@ const SideMenu: React.FC<SideMenuProps> = ({
   onExport, 
   onImport, 
   onShare, 
-  onReset
+  onReset,
+  onLoadCharacters
 }) => {
   return (
     <>
@@ -53,6 +55,16 @@ const SideMenu: React.FC<SideMenuProps> = ({
           <div>
             <h3 className="text-[10px] font-cinzel text-gray-500 uppercase tracking-[0.2em] mb-4">Build Management</h3>
             <div className="space-y-2">
+              <button 
+                onClick={onLoadCharacters}
+                className="w-full flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 border border-white/20 rounded-xl text-white transition-all text-sm group"
+              >
+                <Users className="w-4 h-4 text-amber-400" />
+                <span>Load Character PA/PE</span>
+              </button>
+              
+              <div className="h-4" />
+
               <button 
                 onClick={onExport}
                 className="w-full flex items-center gap-4 p-4 bg-[#161618] hover:bg-[#1c1c1e] border border-[#222] rounded-xl text-gray-300 transition-all text-sm group"

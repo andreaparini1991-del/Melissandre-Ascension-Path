@@ -20,6 +20,12 @@ export interface PlayerStats {
   totalEvolutionPoints: number;
 }
 
+export interface CharacterData {
+  name: string;
+  pa: number;
+  pe: number;
+}
+
 export interface CategoryTheme {
   primary: string;
   secondary: string;
