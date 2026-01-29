@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { Node } from 'reactflow';
 import { Sparkles, Zap, ShieldAlert, Lock, Play, LayoutGrid, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
@@ -73,10 +72,13 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
   };
 
   return (
-    <div className="w-full h-full bg-[#060608] flex flex-col p-4 md:p-6 pt-24 md:pt-28 overflow-hidden">
-      <div className="max-w-6xl mx-auto w-full flex flex-col h-full">
+    <div 
+      className="w-full h-full bg-[#060608] flex flex-col pt-[72px] md:pt-28 overflow-y-auto custom-scrollbar"
+      style={{ WebkitOverflowScrolling: 'touch' }}
+    >
+      <div className="max-w-6xl mx-auto w-full flex flex-col px-4 md:px-6 mb-8">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 mb-6 md:mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 mb-4 md:mb-8">
           <div className="space-y-1">
             <h2 className="text-2xl md:text-3xl font-cinzel font-bold text-white tracking-tight">Compendium</h2>
           </div>
@@ -120,9 +122,9 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
         </div>
 
         {/* Table Area */}
-        <div className="flex-1 overflow-auto rounded-xl md:rounded-2xl border border-[#222] bg-[#0c0c0e]/50 backdrop-blur-sm shadow-2xl custom-scrollbar">
+        <div className="rounded-xl md:rounded-2xl border border-[#222] bg-[#0c0c0e]/50 backdrop-blur-sm shadow-2xl overflow-visible">
           <table className="w-full text-left border-collapse table-auto md:table-fixed">
-            <thead className="sticky top-0 bg-[#111] z-20 shadow-sm">
+            <thead className="md:sticky md:top-0 bg-[#111] z-20 shadow-sm border-b border-[#222]">
               <tr>
                 <th className="px-3 md:px-6 py-4 text-[9px] md:text-[10px] font-cinzel font-bold text-gray-500 uppercase tracking-widest w-2/5 md:w-1/4">Skill</th>
                 <th className="hidden md:table-cell px-2 md:px-6 py-4 text-[9px] md:text-[10px] font-cinzel font-bold text-gray-500 uppercase tracking-widest text-center w-12 md:w-20">Tier</th>
@@ -149,18 +151,22 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
                       <td className="px-3 md:px-6 py-4 md:py-5">
                         <div className="flex items-center gap-2 md:gap-3">
                           <div 
-                            className={`w-8 h-8 md:w-10 md:h-10 rounded-lg border flex items-center justify-center transition-all shrink-0 ${skill.isActive ? 'shadow-lg shadow-white/5' : ''}`}
+                            className={`w-8 h-8 md:w-10 md:h-10 rounded-lg border flex items-center justify-center transition-all shrink-0 ${skill.isActive ? 'shadow-lg shadow-white/10' : ''}`}
                             style={{ 
-                              borderColor: skill.isActive ? theme.primary : '#333',
-                              backgroundColor: skill.isActive ? theme.primary + '11' : 'transparent'
+                              borderColor: skill.isActive ? theme.primary : (skill.isUnlocked ? theme.primary + '66' : '#222'),
+                              backgroundColor: skill.isActive ? theme.primary + '22' : (skill.isUnlocked ? theme.primary + '08' : 'transparent'),
+                              boxShadow: skill.isActive ? `0 0 10px ${theme.glow}` : 'none'
                             }}
                           >
-                            <IconComp size={16} className="md:w-[18px] md:h-[18px]" style={{ color: skill.isActive ? theme.primary : '#555' }} />
+                            <IconComp size={16} className="md:w-[18px] md:h-[18px]" style={{ color: skill.isActive || skill.isUnlocked ? theme.primary : '#333' }} />
                           </div>
                           <div className="flex flex-col">
                             <span 
-                              className={`font-bold text-[11px] md:text-sm tracking-tight transition-colors duration-300 leading-tight`}
-                              style={{ color: skill.isActive ? theme.primary : theme.primary + '88' }}
+                              className={`font-bold text-[11px] md:text-sm tracking-tight transition-all duration-300 leading-tight`}
+                              style={{ 
+                                color: skill.isActive ? '#FFFFFF' : (skill.isUnlocked ? theme.primary : '#4b5563'),
+                                textShadow: skill.isActive ? `0 0 8px ${theme.glow}` : 'none'
+                              }}
                             >
                               {skill.name}
                             </span>
@@ -233,7 +239,7 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
                     {/* Expandable row for mobile description */}
                     {isExpanded && (
                       <tr className="md:hidden bg-white/[0.03]">
-                        <td colSpan={4} className="px-4 py-4">
+                        <td colSpan={5} className="px-4 py-4">
                           <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                              <h4 className="text-[8px] font-cinzel text-gray-500 uppercase tracking-widest mb-1">Effect Description</h4>
                              <p className="text-xs text-gray-400 italic leading-relaxed border-l-2 border-[#333] pl-3">
@@ -258,10 +264,33 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
       </div>
       
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #444; }
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { 
+          width: 6px; 
+          height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track { 
+          background: rgba(0, 0, 0, 0.4); 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb { 
+          background: rgba(255, 255, 255, 0.2); 
+          border-radius: 10px;
+          border: 1px solid rgba(0,0,0,0.3);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { 
+          background: rgba(255, 255, 255, 0.4); 
+        }
+
+        /* Enhanced Mobile Scrollbar visibility */
+        @media (max-width: 768px) {
+          .custom-scrollbar::-webkit-scrollbar { 
+            width: 4px; 
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.35);
+          }
+        }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
