@@ -28,8 +28,8 @@ import { INITIAL_SKILLS, INITIAL_CONNECTIONS } from './constants';
 import { calculateInitialPosition } from './utils/layout';
 import { SkillNodeData, PlayerStats } from './types';
 
-// Versione v5 per layout basato su centri esatti e background riallineato
-const SAVE_KEY = 'ascension_path_save_v5';
+// Versione v8: Layout offset-based per hitbox perfette
+const SAVE_KEY = 'ascension_path_save_v8';
 
 const nodeTypes = {
   skill: SkillNode,
@@ -54,7 +54,7 @@ const RadialBackground = () => {
   return (
     <div style={viewportStyle}>
       <div className="absolute top-0 left-0">
-        {/* Conic Gradient - Start from 330deg to center General (0deg) branch */}
+        {/* Background Radial sectors */}
         <div 
           className="absolute rounded-full"
           style={{
@@ -77,7 +77,7 @@ const RadialBackground = () => {
           }}
         />
 
-        {/* Sector Borders - Rotated by 30deg to frame the branches perfectly */}
+        {/* Sector Borders */}
         {[30, 90, 150, 210, 270, 330].map(deg => (
           <div 
             key={deg} 
@@ -206,6 +206,7 @@ const SkillTreeSimulator = () => {
       source: conn.source,
       target: conn.target,
       type: 'custom',
+      selectable: false,
       data: { 
         category: INITIAL_SKILLS.find(s => s.id === conn.source)?.category,
         sourceActive: false,
@@ -227,7 +228,7 @@ const SkillTreeSimulator = () => {
     } else {
       setTimeout(() => {
         setViewport({ x: window.innerWidth / 2, y: window.innerHeight / 2, zoom: 0.6 });
-        fitView({ padding: 0.3, duration: 800 });
+        fitView({ padding: 0.2, duration: 800 });
       }, 100);
     }
     setIsInitialized(true);
@@ -246,12 +247,12 @@ const SkillTreeSimulator = () => {
 
   const handleExport = () => {
     const activeIds = nodes.filter(n => n.data.isActive).map(n => n.id);
-    const exportData = { activeIds, stats, version: "2.0" };
+    const exportData = { activeIds, stats, version: "2.5" };
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `my_ascension_build.json`;
+    a.download = `ascension_build.json`;
     a.click();
     URL.revokeObjectURL(url);
     setIsMenuOpen(false);
@@ -308,13 +309,13 @@ const SkillTreeSimulator = () => {
     setStats({ totalAscensionPoints: 100, totalEvolutionPoints: 100 });
     setNodes(resetNodes);
     setEdges(INITIAL_CONNECTIONS.map((conn, idx) => ({
-      id: `e-${idx}`, source: conn.source, target: conn.target, type: 'custom',
+      id: `e-${idx}`, source: conn.source, target: conn.target, type: 'custom', selectable: false,
       data: { category: INITIAL_SKILLS.find(s => s.id === conn.source)?.category, sourceActive: false, targetActive: false, targetUnlocked: false, sourceTier: INITIAL_SKILLS.find(s => s.id === conn.source)?.tier, targetTier: INITIAL_SKILLS.find(s => s.id === conn.target)?.tier }
     })));
     setIsMenuOpen(false);
     setTimeout(() => {
       setViewport({ x: window.innerWidth / 2, y: window.innerHeight / 2, zoom: 0.6 });
-      fitView({ padding: 0.3, duration: 800 });
+      fitView({ padding: 0.2, duration: 800 });
     }, 100);
   }, [fitView, setViewport]);
 
@@ -366,7 +367,24 @@ const SkillTreeSimulator = () => {
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} onExport={handleExport} onImport={handleImport} onShare={handleShare} onReset={handleReset} />
       <ControlPanel stats={stats} remainingPA={remainingStats.pa} remainingPE={remainingStats.pe} onStatsChange={(k, v) => setStats(p => ({ ...p, [k]: v }))} onMenuToggle={() => setIsMenuOpen(true)} />
       <div className="w-full h-full relative z-10">
-        <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onNodeClick={onNodeClick} nodeTypes={nodeTypes} edgeTypes={edgeTypes} snapToGrid snapGrid={[20, 20]} fitView minZoom={0.05} maxZoom={2} nodesConnectable={false} nodesDraggable={false}>
+        <ReactFlow 
+          nodes={nodes} 
+          edges={edges} 
+          onNodesChange={onNodesChange} 
+          onEdgesChange={onEdgesChange} 
+          onNodeClick={onNodeClick} 
+          nodeTypes={nodeTypes} 
+          edgeTypes={edgeTypes} 
+          snapToGrid 
+          snapGrid={[20, 20]} 
+          fitView 
+          minZoom={0.05} 
+          maxZoom={2} 
+          nodesConnectable={false} 
+          nodesDraggable={false}
+          edgesFocusable={false}
+          edgesUpdatable={false}
+        >
           <Background color="#ffffff" variant={BackgroundVariant.Lines} gap={80} size={0.5} style={{ opacity: 0.02 }} />
           <RadialBackground />
           <Controls className="!bg-[#111] !border-[#333] !shadow-2xl" />

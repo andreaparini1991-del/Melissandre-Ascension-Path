@@ -78,39 +78,45 @@ const SkillNode: React.FC<NodeProps<SkillNodeData>> = ({ data, selected }) => {
   const labelLines = splitLabel(data.name);
 
   return (
-    <div className="flex flex-col items-center" style={{ transform: 'translate(-50%, -50%)' }}>
+    <div className={`flex flex-col items-center w-16 transition-all duration-300 ${selected ? 'z-50' : 'z-10'}`}>
+      {/* Icon Container */}
       <div 
         className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 
-          ${selected ? 'scale-110 z-10' : ''} 
+          ${selected ? 'scale-110 shadow-2xl' : ''} 
           ${progression === 3 && data.isActive ? 'animate-pulse' : ''}
         `}
         style={statusStyles}
       >
-        <Handle type="target" position={Position.Top} style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0 }} />
-        <Handle type="source" position={Position.Bottom} style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0 }} />
+        <Handle type="target" position={Position.Top} style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0, pointerEvents: 'none' }} />
+        <Handle type="source" position={Position.Bottom} style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0, pointerEvents: 'none' }} />
 
         <IconComponent 
           size={progression === 3 ? 28 : 24} 
           strokeWidth={progression === 3 ? 3 : 2.5}
+          className="pointer-events-none"
           style={{ color: data.isActive ? theme.primary : (data.isUnlocked ? theme.primary + 'AA' : '#333') }} 
         />
 
         {(isPA || isPE) && !data.isActive && (
           <div 
-            className={`absolute -top-2 -right-2 px-1.5 h-6 min-w-[1.5rem] rounded-full flex items-center justify-center text-[10px] font-bold border shadow-xl z-20 transition-transform ${selected ? 'scale-110' : ''}`}
-            style={{ backgroundColor: '#000000', borderColor: isPA ? '#ffffff' : 'transparent', color: isPA ? '#ffffff' : '#38bdf8' }}
+            className={`absolute -top-1 -right-1 px-1.5 h-5 min-w-[1.25rem] rounded-full flex items-center justify-center text-[9px] font-bold border shadow-xl z-20 pointer-events-none transition-transform ${selected ? 'scale-110' : ''}`}
+            style={{ backgroundColor: '#000000', borderColor: isPA ? '#ffffff' : '#38bdf8', color: isPA ? '#ffffff' : '#38bdf8' }}
           >
-            {cost}{isPA ? 'PA' : 'PE'}
+            {cost}{isPA ? 'A' : 'E'}
           </div>
         )}
       </div>
 
-      <div className="mt-2 text-center pointer-events-none select-none w-[140px] flex flex-col items-center justify-start min-h-[2.4em]">
+      {/* Label - Ora segue naturalmente nel flusso flex sotto l'icona */}
+      <div className="mt-3 text-center pointer-events-none select-none w-32 flex flex-col items-center justify-start min-h-[2.5em]">
         {labelLines.map((line, idx) => (
           <span 
             key={idx}
-            className="font-cinzel uppercase block leading-tight text-[12px] transition-colors duration-300 whitespace-nowrap"
-            style={{ color: data.isActive ? theme.primary : '#9ca3af' }}
+            className="font-cinzel uppercase block leading-tight text-[10px] tracking-tighter transition-colors duration-300 whitespace-nowrap overflow-hidden text-ellipsis w-full"
+            style={{ 
+              color: data.isActive ? theme.primary : '#6b7280',
+              textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+            }}
           >
             {line}
           </span>

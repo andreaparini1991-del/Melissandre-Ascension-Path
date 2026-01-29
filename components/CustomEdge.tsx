@@ -39,7 +39,8 @@ const CustomEdge: React.FC<EdgeProps & { data?: CustomEdgeData }> = ({
     ...style,
     stroke: theme.primary,
     transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-    fill: 'none'
+    fill: 'none',
+    pointerEvents: 'none' // Impedisce al mouse di interagire con il path
   };
 
   if (isMastered) {
@@ -57,11 +58,11 @@ const CustomEdge: React.FC<EdgeProps & { data?: CustomEdgeData }> = ({
   }
 
   return (
-    <>
+    <g style={{ pointerEvents: 'none' }}>
       <BaseEdge path={edgePath} markerEnd={markerEnd} style={edgeStyle} />
       
       {isPotential && (
-        <g>
+        <g style={{ pointerEvents: 'none' }}>
           <circle r="4" fill={theme.primary} className="animate-pulse">
             <animateMotion dur="2.8s" repeatCount="indefinite" path={edgePath} />
           </circle>
@@ -72,12 +73,12 @@ const CustomEdge: React.FC<EdgeProps & { data?: CustomEdgeData }> = ({
       )}
 
       {isMastered && (
-        <g>
+        <g style={{ pointerEvents: 'none' }}>
            <circle cx={targetX} cy={targetY} r="3" fill={theme.primary} style={{ filter: `blur(1px)` }} />
            <circle cx={sourceX} cy={sourceY} r="3" fill={theme.primary} style={{ filter: `blur(1px)` }} />
         </g>
       )}
-    </>
+    </g>
   );
 };
 
