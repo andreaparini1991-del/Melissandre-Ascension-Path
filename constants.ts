@@ -8,32 +8,32 @@ const cleanId = (name: string) => name.replace(/[^a-zA-Z0-9]/g, "");
 const RAW_DATA = [
   // BIANCO (GENERAL)
   { b: "Ascendant Path I", c: 10, t: "PA", desc: "Ogni volta che riduci una creatura a 0 punti ferita, puoi ottenere Punti Evoluzione (PE), se la creatura ne conferisce.", br: "PE da uccisioni", cat: "GENERAL", tier: 0, icon: "ArrowUpCircle" },
-  { b: "Ascendant Path II", c: 25, t: "PA", desc: "Quando ottieni PE sconfiggendo un nemico, hai un 50% di possibilità che la quantità di PE ottenuta viene raddoppiata.", br: "Probabilità PE doppi", cat: "GENERAL", tier: 2, icon: "TrendingUp" },
-  { b: "Ascendant Path III", c: 50, t: "PA", desc: "Quando ottieni PA o PE sconfiggendo un nemico, hai un 50% di possibilità che raddoppi l'ammontare di entrambe le risorse.", br: "Probabilità PA/PE doppi", cat: "GENERAL", tier: 3, icon: "Sparkles" },
+  { b: "Ascendant Path II", c: 25, t: "PA", desc: "Quando ottieni PE sconfiggendo un nemico, hai un 50% di possibilità di raddoppiare la quantità di PE ottenuta.", br: "Probabilità PE doppi", cat: "GENERAL", tier: 2, icon: "TrendingUp" },
+  { b: "Ascendant Path III", c: 50, t: "PA", desc: "Quando ottieni PA o PE sconfiggendo un nemico, hai un 50% di possibilità di raddoppiare la quantità di PA e PE ottenuti.", br: "Probabilità PA/PE doppi", cat: "GENERAL", tier: 3, icon: "Sparkles" },
 
   // ROSSO (VITAL)
   { b: "Vital Branch", c: 5, t: "PA", desc: "Il tuo massimo dei punti ferita aumenta di 4.", br: "+4 Punti Ferita", cat: "VITAL", tier: 0, icon: "Heart" },
-  { b: "Vital Branch I", c: 5, t: "PE", desc: "Il tuo massimo dei punti ferita aumenta di un totale di 8 (sostituisce il bonus precedente).", br: "+8 Punti Ferita", cat: "VITAL", tier: 2, icon: "Heart" },
-  { b: "Vital Branch II", c: 10, t: "PE", desc: "Il tuo massimo dei punti ferita aumenta di un totale di 13 (sostituisce il bonus precedente).", br: "+13 Punti Ferita", cat: "VITAL", tier: 3, icon: "PlusCircle" },
-  { b: "Vital Branch III", c: 20, t: "PE", desc: "Il tuo massimo dei punti ferita aumenta di un totale di 18 (sostituisce il bonus precedente).", br: "+18 Punti Ferita", cat: "VITAL", tier: 4, icon: "Shield" },
+  { b: "Vital Branch I", c: 5, t: "PE", desc: "Il tuo massimo dei punti ferita aumenta di 8 (sostituisce il bonus precedente).", br: "+8 Punti Ferita", cat: "VITAL", tier: 2, icon: "Heart" },
+  { b: "Vital Branch II", c: 10, t: "PE", desc: "Il tuo massimo dei punti ferita aumenta di 13 (sostituisce il bonus precedente).", br: "+13 Punti Ferita", cat: "VITAL", tier: 3, icon: "PlusCircle" },
+  { b: "Vital Branch III", c: 20, t: "PE", desc: "Il tuo massimo dei punti ferita aumenta di 18 (sostituisce il bonus precedente).", br: "+18 Punti Ferita", cat: "VITAL", tier: 4, icon: "Shield" },
   { b: "Empowered Weapon Attack", c: 20, t: "PA", desc: "Sblocca il ramo Empowered Weapon Attack.", br: "Sblocca Potenziamenti", cat: "VITAL", tier: 1, icon: "Swords" },
   { b: "Empowered Weapon Attack I", c: 10, t: "PE", desc: "Una volta per giorno, puoi aggiungere un bonus di +1 a un tiro per colpire e al relativo tiro per i danni di un attacco d'arma.", br: "1/gg: +1 Colpire/Danni", cat: "VITAL", tier: 2, icon: "Zap" },
   { b: "Empowered Weapon Attack II", c: 25, t: "PE", desc: "Due volte per giorno, puoi aggiungere un bonus di +1 a un tiro per colpire e +3 ai tiri per i danni di un attacco d'arma.", br: "2/gg: +1 Colpire/+3 Danni", cat: "VITAL", tier: 3, icon: "Zap" },
   { b: "Empowered Weapon Attack III", c: 50, t: "PE", desc: "Ottieni un bonus permanente di +1 ai tiri per colpire e +2 ai tiri per i danni effettuati con armi.", br: "+1 Colpire/+2 Danni fisso", cat: "VITAL", tier: 4, icon: "Zap" },
   { b: "Empowered Weapon Precision", c: 20, t: "PA", desc: "Sblocca il ramo Empowered Weapon Precision.", br: "Sblocca Precisione", cat: "VITAL", tier: 1, icon: "Target" },
   { b: "Empowered Weapon Precision I", c: 10, t: "PE", desc: "Una volta per giorno, puoi scegliere di effettuare un tiro per colpire con un'arma con Vantaggio.", br: "1/gg: Vantaggio Attacco", cat: "VITAL", tier: 2, icon: "Crosshair" },
-  { b: "Empowered Weapon Precision II", c: 20, t: "PE", desc: "Come reazione, quando una creatura effettua un tiro per colpire contro di te, puoi imporre Svantaggio a quel tiro (1 volta per giorno).", br: "1/gg: Svantaggio Nemico", cat: "VITAL", tier: 3, icon: "ShieldAlert" },
+  { b: "Empowered Weapon Precision II", c: 20, t: "PE", desc: "Una volta per giorno come Reazione, quando una creatura effettua un tiro per colpire contro di te, puoi imporre Svantaggio a quel tiro.", br: "1/gg: Svantaggio Nemico", cat: "VITAL", tier: 3, icon: "ShieldAlert" },
   { b: "Empowered Weapon Precision III", c: 35, t: "PE", desc: "Una volta per giorno, puoi scegliere di ripetere un tuo tiro per colpire fallito, oppure costringere un nemico a ripetere un tiro per colpire effettuato con successo contro di te.", br: "1/gg: Ritiro Attacco", cat: "VITAL", tier: 4, icon: "RefreshCw" },
   { b: "Critical Weapon Proficiency", c: 20, t: "PA", desc: "Sblocca il ramo Critical Weapon Proficiency.", br: "Sblocca Critici", cat: "VITAL", tier: 1, icon: "Skull" },
-  { b: "Critical Weapon Proficiency I", c: 10, t: "PE", desc: "Quando metti a segno un colpo critico con un'arma, aggiungi danni extra pari alla metà del tuo bonus di competenza (arrotondato per difetto).", br: "Danni Critici +½ Prof", cat: "VITAL", tier: 2, icon: "Grip" },
-  { b: "Critical Weapon Proficiency II", c: 25, t: "PE", desc: "Quando metti a segno un colpo critico con un'arma, aggiungi danni extra pari al tuo bonus di competenza.", br: "Danni Critici +Prof", cat: "VITAL", tier: 3, icon: "Grip" },
+  { b: "Critical Weapon Proficiency I", c: 10, t: "PE", desc: "Quando metti a segno un colpo critico con un'arma, infliggi danni extra pari alla metà del tuo bonus di competenza (arrotondato per difetto).", br: "Danni Critici +½ Prof", cat: "VITAL", tier: 2, icon: "Grip" },
+  { b: "Critical Weapon Proficiency II", c: 25, t: "PE", desc: "Quando metti a segno un colpo critico con un'arma, infliggi danni extra pari al tuo bonus di competenza.", br: "Danni Critici +Prof", cat: "VITAL", tier: 3, icon: "Grip" },
   { b: "Critical Weapon Proficiency III", c: 50, t: "PE", desc: "I tuoi attacchi con arma mettono a segno un colpo critico con un risultato di 19 o 20 al tiro del dado.", br: "Critico con 19-20", cat: "VITAL", tier: 4, icon: "Dices" },
 
   // BLU (MAGIC)
   { b: "Magical Branch", c: 5, t: "PA", desc: "Apprendi un trucchetto a tua scelta dalla lista della tua classe.", br: "Nuovo Trucchetto", cat: "MAGIC", tier: 0, icon: "Wand2" },
-  { b: "Magical Branch I", c: 5, t: "PE", desc: "Apprendi un nuovo incantesimo dalla tua lista di incantesimi (massimo livello 3).", br: "Spell Liv 1-3", cat: "MAGIC", tier: 2, icon: "Sparkles" },
-  { b: "Magical Branch II", c: 10, t: "PE", desc: "Apprendi un nuovo incantesimo dalla tua lista di incantesimi (massimo livello 6).", br: "Spell Liv 4-6", cat: "MAGIC", tier: 3, icon: "Sparkles" },
-  { b: "Magical Branch III", c: 20, t: "PE", desc: "Apprendi un nuovo incantesimo dalla tua lista di incantesimi (massimo livello 9).", br: "Spell Liv 7-9", cat: "MAGIC", tier: 4, icon: "Sparkles" },
+  { b: "Magical Branch I", c: 5, t: "PE", desc: "Apprendi un nuovo incantesimo dalla lista della tua classe (massimo livello 3).", br: "Spell Liv 1-3", cat: "MAGIC", tier: 2, icon: "Sparkles" },
+  { b: "Magical Branch II", c: 10, t: "PE", desc: "Apprendi un nuovo incantesimo dalla lista della tua classe (massimo livello 6).", br: "Spell Liv 4-6", cat: "MAGIC", tier: 3, icon: "Sparkles" },
+  { b: "Magical Branch III", c: 20, t: "PE", desc: "Apprendi un nuovo incantesimo dalla lista della tua classe (massimo livello 9).", br: "Spell Liv 7-9", cat: "MAGIC", tier: 4, icon: "Sparkles" },
   { b: "Abundant Magic", c: 20, t: "PA", desc: "Sblocca il ramo Abundant Magic.", br: "Sblocca Slot Extra", cat: "MAGIC", tier: 1, icon: "Zap" },
   { b: "Abundant Magic I", c: 10, t: "PE", desc: "Ottieni un ulteriore slot incantesimo di un livello pari a un terzo (arrotondato per difetto) del tuo livello massimo di incantesimo conosciuto.", br: "+1 Slot Liv basso", cat: "MAGIC", tier: 2, icon: "Battery" },
   { b: "Abundant Magic II", c: 25, t: "PE", desc: "Ottieni un ulteriore slot incantesimo di un livello pari alla metà (arrotondato per difetto) del tuo livello massimo di incantesimo conosciuto.", br: "+1 Slot Liv medio", cat: "MAGIC", tier: 3, icon: "BatteryFull" },
@@ -49,7 +49,7 @@ const RAW_DATA = [
 
   // GIALLO (SKILL)
   { b: "Skill Branch", c: 5, t: "PA", desc: "Ottieni competenza in un'abilità a tua scelta.", br: "Nuova Competenza", cat: "SKILL", tier: 0, icon: "GraduationCap" },
-  { b: "Skill Branch I", c: 5, t: "PE", desc: "Ottieni un bonus di +1 alle prove effettuate con l'abilità scelta nel ramo precedente.", br: "+1 Nuova Skill", cat: "SKILL", tier: 2, icon: "Star" },
+  { b: "Skill Branch I", c: 5, t: "PE", desc: "Ottieni un bonus di +1 alle prove effettuate con l'abilità scelta in Skill Branch.", br: "+1 Nuova Skill", cat: "SKILL", tier: 2, icon: "Star" },
   { b: "Skill Branch II", c: 10, t: "PE", desc: "Scegli un'abilità in cui sei già competente: ottieni un bonus di +1 permanente a tutte le prove di quell'abilità.", br: "+1 Skill nota", cat: "SKILL", tier: 3, icon: "Star" },
   { b: "Skill Branch III", c: 20, t: "PE", desc: "Una volta per giorno, puoi scegliere di superare automaticamente una prova di abilità in cui sei competente senza tirare il dado.", br: "1/gg Successo Automatico", cat: "SKILL", tier: 4, icon: "CheckCircle" },
   { b: "Flexibility Skills", c: 20, t: "PA", desc: "Sblocca il ramo Flexibility Skills.", br: "Sblocca Adattabilità", cat: "SKILL", tier: 1, icon: "Dribbble" },
@@ -62,7 +62,7 @@ const RAW_DATA = [
   { b: "Advanced Skills III", c: 30, t: "PE", desc: "Una volta per ora, puoi scegliere di utilizzare il bonus di un'abilità competente al posto di un'altra per una singola prova.", br: "Sostituisci Skill", cat: "SKILL", tier: 4, icon: "Shuffle" },
   { b: "Magnitudo Skills", c: 20, t: "PA", desc: "Sblocca il ramo Magnitudo Skills.", br: "Sblocca Analisi", cat: "SKILL", tier: 1, icon: "Magnet" },
   { b: "Magnitudo Skills I", c: 10, t: "PE", desc: "Quando effettui una prova per determinare le debolezze di una creatura, la superi automaticamente.", br: "Scopri Debolezze", cat: "SKILL", tier: 2, icon: "Search" },
-  { b: "Magnitudo Skills II", c: 25, t: "PE", desc: "Scegli un alleato: puoi utilizzare una sua abilità di classe per un numero di round pari a metà del tuo valore di Competenza (arrotondato per difetto). Mentre effettui questa operazione il soggetto di cui copi l’abilità non potrà attivarla finchè è in uso da parte tua.", br: "Copia Skill Alleata", cat: "SKILL", tier: 3, icon: "Copy" },
+  { b: "Magnitudo Skills II", c: 25, t: "PE", desc: "Scegli un alleato: puoi utilizzare una sua abilità di classe per un numero di round pari a metà del tuo valore di competenza (arrotondato per difetto). Mentre effettui questa operazione il soggetto di cui copi l’abilità non potrà attivarla finchè è in uso da parte tua.", br: "Copia Skill Alleata", cat: "SKILL", tier: 3, icon: "Copy" },
   { b: "Magnitudo Skills III", c: 40, t: "PE", desc: "Dopo aver sconfitto un nemico, puoi apprendere e utilizzare una sua azione o abilità speciale per una volta (secondo i termini estesi).", br: "Copia Skill Nemica", cat: "SKILL", tier: 4, icon: "Skull" },
 
   // VERDE (UTILITY)
