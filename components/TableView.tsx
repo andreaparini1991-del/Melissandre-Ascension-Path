@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { Node } from 'reactflow';
 import { Sparkles, Zap, ShieldAlert, Lock, Play, LayoutGrid, ChevronDown, ChevronUp, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 import * as Icons from 'lucide-react';
@@ -51,8 +51,8 @@ const getIconForSkill = (name: string): string => {
 };
 
 const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remainingPA, remainingPE }) => {
-  const [filterCategory, setFilterCategory] = useState<SkillCategory | null>(null);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<Set<SkillCategory>>(new Set());
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<StatusFilter>>(new Set());
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const orderMap = useMemo(() => {
@@ -63,24 +63,57 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
     return map;
   }, []);
 
+  const toggleCategory = useCallback((cat: SkillCategory) => {
+    setSelectedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(cat)) {
+        next.delete(cat);
+      } else {
+        next.add(cat);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleStatus = useCallback((status: StatusFilter) => {
+    setSelectedStatuses(prev => {
+      const next = new Set(prev);
+      if (next.has(status)) {
+        next.delete(status);
+      } else {
+        next.add(status);
+      }
+      return next;
+    });
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setSelectedCategories(new Set());
+    setSelectedStatuses(new Set());
+  }, []);
+
   const filteredNodes = useMemo(() => {
     return nodes
       .map(n => n.data)
       .filter(skill => {
-        // Category Filter
-        if (filterCategory && skill.category !== filterCategory) return false;
+        // Category Filter (OR logic within the set)
+        if (selectedCategories.size > 0 && !selectedCategories.has(skill.category)) return false;
         
-        // Status Filter
-        if (statusFilter === 'known') {
-          if (!skill.isActive) return false;
-        } else if (statusFilter === 'learnable') {
-          if (!skill.isActive && !skill.isUnlocked) return false;
+        // Status Filter (OR logic within the set)
+        if (selectedStatuses.size > 0) {
+          const isKnown = skill.isActive;
+          const isLearnable = !skill.isActive && skill.isUnlocked;
+          
+          const matchesKnown = selectedStatuses.has('known') && isKnown;
+          const matchesLearnable = selectedStatuses.has('learnable') && isLearnable;
+          
+          if (!matchesKnown && !matchesLearnable) return false;
         }
         
         return true;
       })
       .sort((a, b) => (orderMap[a.id] ?? 0) - (orderMap[b.id] ?? 0));
-  }, [nodes, filterCategory, statusFilter, orderMap]);
+  }, [nodes, selectedCategories, selectedStatuses, orderMap]);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => {
@@ -93,6 +126,8 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
       return next;
     });
   };
+
+  const isAllSelected = selectedCategories.size === 0 && selectedStatuses.size === 0;
 
   return (
     <div className="absolute inset-0 flex flex-col pt-[72px] md:pt-28 overflow-y-auto md:overflow-hidden custom-scrollbar bg-[#060608] overscroll-contain">
@@ -107,9 +142,9 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap gap-2 pointer-events-auto overflow-x-auto pb-2 no-scrollbar">
               <button
-                onClick={() => { setFilterCategory(null); setStatusFilter(null); }}
+                onClick={clearFilters}
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] md:text-xs font-bold uppercase tracking-wider shrink-0 ${
-                  filterCategory === null && statusFilter === null
+                  isAllSelected
                     ? 'bg-white text-black border-white shadow-lg' 
                     : 'bg-[#111] border-[#333] text-gray-500 hover:text-gray-300 hover:border-[#444]'
                 }`}
@@ -119,9 +154,9 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
               </button>
 
               <button
-                onClick={() => setStatusFilter(statusFilter === 'known' ? null : 'known')}
+                onClick={() => toggleStatus('known')}
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] md:text-xs font-bold uppercase tracking-wider shrink-0 ${
-                  statusFilter === 'known'
+                  selectedStatuses.has('known')
                     ? 'bg-green-500 text-black border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.4)]' 
                     : 'bg-[#111] border-[#333] text-gray-500 hover:text-green-400 hover:border-green-900/50'
                 }`}
@@ -131,9 +166,9 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
               </button>
 
               <button
-                onClick={() => setStatusFilter(statusFilter === 'learnable' ? null : 'learnable')}
+                onClick={() => toggleStatus('learnable')}
                 className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] md:text-xs font-bold uppercase tracking-wider shrink-0 ${
-                  statusFilter === 'learnable'
+                  selectedStatuses.has('learnable')
                     ? 'bg-amber-400 text-black border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.4)]' 
                     : 'bg-[#111] border-[#333] text-gray-500 hover:text-amber-400 hover:border-amber-900/50'
                 }`}
@@ -147,12 +182,12 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
               {CATEGORIES.map((cat) => {
                 const theme = CATEGORY_THEMES[cat.value];
                 const IconComp = (Icons as any)[cat.icon] || Icons.Circle;
-                const isActive = filterCategory === cat.value;
+                const isActive = selectedCategories.has(cat.value);
 
                 return (
                   <button
                     key={cat.value}
-                    onClick={() => setFilterCategory(isActive ? null : cat.value)}
+                    onClick={() => toggleCategory(cat.value)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] md:text-xs font-bold uppercase tracking-wider group shrink-0`}
                     style={{
                       borderColor: isActive ? theme.primary : '#333',
