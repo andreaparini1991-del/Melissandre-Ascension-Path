@@ -1,6 +1,7 @@
+
 import React, { useMemo, useState } from 'react';
 import { Node } from 'reactflow';
-import { Sparkles, Zap, ShieldAlert, Lock, Play, LayoutGrid, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { Sparkles, Zap, ShieldAlert, Lock, Play, LayoutGrid, ChevronDown, ChevronUp, Trash2, CheckCircle2 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { SkillNodeData, CATEGORY_THEMES, SkillCategory } from '../types';
 import { INITIAL_SKILLS } from '../constants';
@@ -12,6 +13,8 @@ interface TableViewProps {
   remainingPA: number;
   remainingPE: number;
 }
+
+type StatusFilter = 'known' | 'learnable';
 
 const CATEGORIES: { label: string; value: SkillCategory; icon: string }[] = [
   { label: 'General', value: 'GENERAL', icon: 'ArrowUpCircle' },
@@ -50,6 +53,7 @@ const getIconForSkill = (name: string): string => {
 
 const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remainingPA, remainingPE }) => {
   const [filterCategory, setFilterCategory] = useState<SkillCategory | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const orderMap = useMemo(() => {
@@ -63,9 +67,24 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
   const filteredNodes = useMemo(() => {
     return nodes
       .map(n => n.data)
-      .filter(skill => !filterCategory || skill.category === filterCategory)
+      .filter(skill => {
+        // Category Filter
+        if (filterCategory && skill.category !== filterCategory) return false;
+        
+        // Status Filter
+        if (statusFilter === 'known') {
+          if (!skill.isActive) return false;
+        } else if (statusFilter === 'learnable') {
+          const canAfford = remainingPA >= skill.costAscension && remainingPE >= skill.costEvolution;
+          // Include if already active OR (unlocked AND affordable)
+          const isAffordableAndUnlocked = skill.isUnlocked && canAfford;
+          if (!skill.isActive && !isAffordableAndUnlocked) return false;
+        }
+        
+        return true;
+      })
       .sort((a, b) => (orderMap[a.id] ?? 0) - (orderMap[b.id] ?? 0));
-  }, [nodes, filterCategory, orderMap]);
+  }, [nodes, filterCategory, statusFilter, orderMap, remainingPA, remainingPE]);
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
@@ -83,41 +102,73 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
             <h2 className="text-2xl md:text-3xl font-cinzel font-bold text-white tracking-tight">Compendium</h2>
           </div>
           
-          {/* Category Filter Buttons */}
-          <div className="flex flex-wrap gap-2 pointer-events-auto overflow-x-auto pb-2 no-scrollbar">
-            <button
-              onClick={() => setFilterCategory(null)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] md:text-xs font-bold uppercase tracking-wider shrink-0 ${
-                filterCategory === null 
-                  ? 'bg-white text-black border-white shadow-lg' 
-                  : 'bg-[#111] border-[#333] text-gray-500 hover:text-gray-300 hover:border-[#444]'
-              }`}
-            >
-              <LayoutGrid size={14} />
-              <span>All</span>
-            </button>
-            {CATEGORIES.map((cat) => {
-              const theme = CATEGORY_THEMES[cat.value];
-              const IconComp = (Icons as any)[cat.icon] || Icons.Circle;
-              const isActive = filterCategory === cat.value;
+          {/* Filters Wrapper */}
+          <div className="flex flex-col gap-3">
+            {/* Main Filters: All, Category, Status */}
+            <div className="flex flex-wrap gap-2 pointer-events-auto overflow-x-auto pb-2 no-scrollbar">
+              <button
+                onClick={() => { setFilterCategory(null); setStatusFilter(null); }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] md:text-xs font-bold uppercase tracking-wider shrink-0 ${
+                  filterCategory === null && statusFilter === null
+                    ? 'bg-white text-black border-white shadow-lg' 
+                    : 'bg-[#111] border-[#333] text-gray-500 hover:text-gray-300 hover:border-[#444]'
+                }`}
+              >
+                <LayoutGrid size={14} />
+                <span>All</span>
+              </button>
 
-              return (
-                <button
-                  key={cat.value}
-                  onClick={() => setFilterCategory(isActive ? null : cat.value)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] md:text-xs font-bold uppercase tracking-wider group shrink-0`}
-                  style={{
-                    borderColor: isActive ? theme.primary : '#333',
-                    backgroundColor: isActive ? theme.primary : '#111',
-                    color: isActive ? '#000' : '#6b7280',
-                    boxShadow: isActive ? `0 0 15px ${theme.glow}` : 'none'
-                  }}
-                >
-                  <IconComp size={14} style={{ color: isActive ? '#000' : theme.primary }} />
-                  <span style={{ color: isActive ? '#000' : 'inherit' }}>{cat.label}</span>
-                </button>
-              );
-            })}
+              {/* Status Specific Filters */}
+              <button
+                onClick={() => setStatusFilter(statusFilter === 'known' ? null : 'known')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] md:text-xs font-bold uppercase tracking-wider shrink-0 ${
+                  statusFilter === 'known'
+                    ? 'bg-green-500 text-black border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.4)]' 
+                    : 'bg-[#111] border-[#333] text-gray-500 hover:text-green-400 hover:border-green-900/50'
+                }`}
+              >
+                <CheckCircle2 size={14} />
+                <span>Known</span>
+              </button>
+
+              <button
+                onClick={() => setStatusFilter(statusFilter === 'learnable' ? null : 'learnable')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] md:text-xs font-bold uppercase tracking-wider shrink-0 ${
+                  statusFilter === 'learnable'
+                    ? 'bg-amber-400 text-black border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.4)]' 
+                    : 'bg-[#111] border-[#333] text-gray-500 hover:text-amber-400 hover:border-amber-900/50'
+                }`}
+              >
+                <Zap size={14} />
+                <span>Learnable</span>
+              </button>
+
+              <div className="w-px h-8 bg-[#333] mx-1 hidden md:block" />
+
+              {/* Category Filters */}
+              {CATEGORIES.map((cat) => {
+                const theme = CATEGORY_THEMES[cat.value];
+                const IconComp = (Icons as any)[cat.icon] || Icons.Circle;
+                const isActive = filterCategory === cat.value;
+
+                return (
+                  <button
+                    key={cat.value}
+                    onClick={() => setFilterCategory(isActive ? null : cat.value)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] md:text-xs font-bold uppercase tracking-wider group shrink-0`}
+                    style={{
+                      borderColor: isActive ? theme.primary : '#333',
+                      backgroundColor: isActive ? theme.primary : '#111',
+                      color: isActive ? '#000' : '#6b7280',
+                      boxShadow: isActive ? `0 0 15px ${theme.glow}` : 'none'
+                    }}
+                  >
+                    <IconComp size={14} style={{ color: isActive ? '#000' : theme.primary }} />
+                    <span style={{ color: isActive ? '#000' : 'inherit' }}>{cat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

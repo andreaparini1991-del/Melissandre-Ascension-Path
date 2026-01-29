@@ -25,6 +25,15 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   viewMode,
   onViewChange
 }) => {
+  // Helper to handle numeric input sanitization (trimming leading zeros)
+  const handleNumericInput = (key: keyof PlayerStats, value: string) => {
+    // Remove non-numeric characters
+    const digitsOnly = value.replace(/\D/g, '');
+    // Trim leading zeros unless the value is just "0"
+    const sanitized = digitsOnly.replace(/^0+(?!$)/, '');
+    onStatsChange(key, parseInt(sanitized, 10) || 0);
+  };
+
   return (
     <div className="absolute top-3 md:top-6 left-0 right-0 px-2 md:px-6 z-50 flex justify-center md:justify-between items-start pointer-events-none">
       
@@ -55,9 +64,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 </span>
                 <span className="text-[9px] text-gray-600">/</span>
                 <input 
-                  type="number" 
+                  type="text"
+                  inputMode="numeric"
                   value={stats.totalAscensionPoints} 
-                  onChange={(e) => onStatsChange('totalAscensionPoints', parseInt(e.target.value) || 0)}
+                  onChange={(e) => handleNumericInput('totalAscensionPoints', e.target.value)}
                   className="w-9 bg-transparent text-gray-400 font-cinzel text-[10px] outline-none text-center"
                 />
               </div>
@@ -77,9 +87,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 </span>
                 <span className="text-[9px] text-gray-600">/</span>
                 <input 
-                  type="number" 
+                  type="text"
+                  inputMode="numeric"
                   value={stats.totalEvolutionPoints} 
-                  onChange={(e) => onStatsChange('totalEvolutionPoints', parseInt(e.target.value) || 0)}
+                  onChange={(e) => handleNumericInput('totalEvolutionPoints', e.target.value)}
                   className="w-9 bg-transparent text-gray-400 font-cinzel text-[10px] outline-none text-center"
                 />
               </div>
@@ -152,9 +163,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 </span>
                 <span className="text-sm text-gray-600">/</span>
                 <input 
-                  type="number" 
+                  type="text"
+                  inputMode="numeric"
                   value={stats.totalAscensionPoints} 
-                  onChange={(e) => onStatsChange('totalAscensionPoints', parseInt(e.target.value) || 0)}
+                  onChange={(e) => handleNumericInput('totalAscensionPoints', e.target.value)}
                   className="w-16 bg-transparent text-gray-400 font-cinzel text-base outline-none border-b border-transparent focus:border-white/20 transition-all text-center hover:text-white"
                 />
               </div>
@@ -174,9 +186,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 </span>
                 <span className="text-sm text-gray-600">/</span>
                 <input 
-                  type="number" 
+                  type="text"
+                  inputMode="numeric"
                   value={stats.totalEvolutionPoints} 
-                  onChange={(e) => onStatsChange('totalEvolutionPoints', parseInt(e.target.value) || 0)}
+                  onChange={(e) => handleNumericInput('totalEvolutionPoints', e.target.value)}
                   className="w-16 bg-transparent text-gray-400 font-cinzel text-base outline-none border-b border-transparent focus:border-blue-400/20 transition-all text-center hover:text-blue-400"
                 />
               </div>
