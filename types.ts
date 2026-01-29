@@ -15,8 +15,8 @@ export interface SkillNodeData {
 }
 
 export interface PlayerStats {
-  ascensionPoints: number;
-  evolutionPoints: number;
+  totalAscensionPoints: number;
+  totalEvolutionPoints: number;
 }
 
 export interface CategoryTheme {

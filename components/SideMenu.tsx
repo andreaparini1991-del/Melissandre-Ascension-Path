@@ -48,14 +48,14 @@ const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onExport, onImport
                 className="w-full flex items-center gap-4 p-4 bg-[#161618] hover:bg-[#1c1c1e] border border-[#222] rounded-xl text-gray-300 transition-all text-sm group"
               >
                 <Download className="w-4 h-4 group-hover:text-white" />
-                <span>Export .JSON</span>
+                <span>Export Build</span>
               </button>
               <button 
                 onClick={onImport}
                 className="w-full flex items-center gap-4 p-4 bg-[#161618] hover:bg-[#1c1c1e] border border-[#222] rounded-xl text-gray-300 transition-all text-sm group"
               >
                 <Upload className="w-4 h-4 group-hover:text-white" />
-                <span>Import .JSON</span>
+                <span>Import Build</span>
               </button>
             </div>
           </div>

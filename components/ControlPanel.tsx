@@ -5,13 +5,21 @@ import { PlayerStats } from '../types';
 
 interface ControlPanelProps {
   stats: PlayerStats;
+  remainingPA: number;
+  remainingPE: number;
   onStatsChange: (key: keyof PlayerStats, val: number) => void;
   onMenuToggle: () => void;
 }
 
-const ControlPanel: React.FC<ControlPanelProps> = ({ stats, onStatsChange, onMenuToggle }) => {
+const ControlPanel: React.FC<ControlPanelProps> = ({ 
+  stats, 
+  remainingPA, 
+  remainingPE, 
+  onStatsChange, 
+  onMenuToggle 
+}) => {
   return (
-    <div className="absolute top-4 left-4 right-4 z-50 flex justify-between items-center pointer-events-none">
+    <div className="absolute top-4 left-4 right-4 z-50 flex justify-between items-start pointer-events-none">
       {/* Menu Trigger */}
       <button 
         onClick={onMenuToggle}
@@ -21,31 +29,53 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ stats, onStatsChange, onMen
       </button>
 
       {/* Stats Display */}
-      <div className="flex items-center gap-4 bg-[#111] border border-[#333] p-2 px-4 rounded-xl shadow-2xl pointer-events-auto">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-white" />
-          <span className="text-xs font-cinzel text-gray-400">PA:</span>
-          <input 
-            type="number" 
-            value={stats.ascensionPoints} 
-            onChange={(e) => onStatsChange('ascensionPoints', parseInt(e.target.value) || 0)}
-            className="w-12 bg-transparent text-white font-bold outline-none border-b border-transparent focus:border-white transition-all text-center"
-          />
+      <div className="flex items-center gap-6 bg-[#111] border border-[#333] p-3 px-6 rounded-2xl shadow-2xl pointer-events-auto backdrop-blur-md">
+        {/* PA Section */}
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1.5 opacity-50">
+            <Sparkles className="w-3 h-3 text-white" />
+            <span className="text-[9px] font-cinzel font-bold tracking-widest text-white uppercase">Ascensione</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className={`text-lg font-bold font-cinzel ${remainingPA < 0 ? 'text-red-500' : 'text-white'}`}>
+              {remainingPA}
+            </span>
+            <span className="text-xs text-gray-600">/</span>
+            <input 
+              type="number" 
+              value={stats.totalAscensionPoints} 
+              onChange={(e) => onStatsChange('totalAscensionPoints', parseInt(e.target.value) || 0)}
+              className="w-14 bg-transparent text-gray-400 font-cinzel text-sm outline-none border-b border-transparent focus:border-white/20 transition-all text-center hover:text-white"
+              title="Modifica PA Totali"
+            />
+          </div>
         </div>
-        <div className="w-px h-6 bg-[#333]" />
-        <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-blue-400" />
-          <span className="text-xs font-cinzel text-gray-400">PE:</span>
-          <input 
-            type="number" 
-            value={stats.evolutionPoints} 
-            onChange={(e) => onStatsChange('evolutionPoints', parseInt(e.target.value) || 0)}
-            className="w-12 bg-transparent text-white font-bold outline-none border-b border-transparent focus:border-blue-400 transition-all text-center"
-          />
+
+        <div className="w-px h-10 bg-[#333]" />
+
+        {/* PE Section */}
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1.5 opacity-50">
+            <Zap className="w-3 h-3 text-blue-400" />
+            <span className="text-[9px] font-cinzel font-bold tracking-widest text-blue-400 uppercase">Evoluzione</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className={`text-lg font-bold font-cinzel ${remainingPE < 0 ? 'text-red-500' : 'text-blue-400'}`}>
+              {remainingPE}
+            </span>
+            <span className="text-xs text-gray-600">/</span>
+            <input 
+              type="number" 
+              value={stats.totalEvolutionPoints} 
+              onChange={(e) => onStatsChange('totalEvolutionPoints', parseInt(e.target.value) || 0)}
+              className="w-14 bg-transparent text-gray-400 font-cinzel text-sm outline-none border-b border-transparent focus:border-blue-400/20 transition-all text-center hover:text-blue-400"
+              title="Modifica PE Totali"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Spacer for layout balance */}
+      {/* Invisible spacer for balance */}
       <div className="w-12" />
     </div>
   );

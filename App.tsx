@@ -28,7 +28,8 @@ import { INITIAL_SKILLS, INITIAL_CONNECTIONS } from './constants';
 import { calculateInitialPosition } from './utils/layout';
 import { SkillNodeData, PlayerStats } from './types';
 
-const SAVE_KEY = 'ascension_path_save';
+// Versione v5 per layout basato su centri esatti e background riallineato
+const SAVE_KEY = 'ascension_path_save_v5';
 
 const nodeTypes = {
   skill: SkillNode,
@@ -40,6 +41,7 @@ const edgeTypes = {
 
 const RadialBackground = () => {
   const { x, y, zoom } = useViewport();
+  
   const viewportStyle: React.CSSProperties = {
     position: 'absolute',
     inset: 0,
@@ -52,34 +54,37 @@ const RadialBackground = () => {
   return (
     <div style={viewportStyle}>
       <div className="absolute top-0 left-0">
+        {/* Conic Gradient - Start from 330deg to center General (0deg) branch */}
         <div 
           className="absolute rounded-full"
           style={{
-            width: '10000px',
-            height: '10000px',
+            width: '12000px',
+            height: '12000px',
             left: '0',
             top: '0',
             transform: 'translate(-50%, -50%)',
             background: `conic-gradient(
               from 330deg,
-              rgba(255, 255, 255, 0.08) 0deg 60deg,
-              rgba(239, 68, 68, 0.08) 60deg 120deg,
-              rgba(59, 130, 246, 0.08) 120deg 180deg,
-              rgba(234, 179, 8, 0.08) 180deg 240deg,
-              rgba(34, 197, 94, 0.08) 240deg 300deg,
-              rgba(249, 115, 22, 0.08) 300deg 360deg
+              rgba(255, 255, 255, 0.05) 0deg 60deg,
+              rgba(239, 68, 68, 0.05) 60deg 120deg,
+              rgba(59, 130, 246, 0.05) 120deg 180deg,
+              rgba(234, 179, 8, 0.05) 180deg 240deg,
+              rgba(34, 197, 94, 0.05) 240deg 300deg,
+              rgba(249, 115, 22, 0.05) 300deg 360deg
             )`,
-            filter: 'blur(100px)',
+            filter: 'blur(80px)',
             opacity: 0.7
           }}
         />
+
+        {/* Sector Borders - Rotated by 30deg to frame the branches perfectly */}
         {[30, 90, 150, 210, 270, 330].map(deg => (
           <div 
             key={deg} 
             className="absolute origin-center" 
             style={{ 
               width: '1px',
-              height: '8000px',
+              height: '10000px',
               left: '0',
               top: '0',
               transform: `translate(-50%, -50%) rotate(${deg}deg)`,
@@ -87,10 +92,12 @@ const RadialBackground = () => {
             }} 
           />
         ))}
-        {[150, 390, 630, 870, 1110].map(r => (
+
+        {/* Tier Rings */}
+        {[160, 450, 750, 1050, 1350].map(r => (
           <div 
             key={r} 
-            className="absolute border border-white/[0.06] rounded-full" 
+            className="absolute border border-white/[0.07] rounded-full" 
             style={{ 
               width: `${r * 2}px`, 
               height: `${r * 2}px`,
@@ -100,20 +107,39 @@ const RadialBackground = () => {
             }} 
           />
         ))}
+        
+        {/* Subtle crosshair exactly on (0,0) */}
+        <div className="absolute w-10 h-[1px] bg-white/10 -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute h-10 w-[1px] bg-white/10 -translate-x-1/2 -translate-y-1/2" />
       </div>
     </div>
   );
 };
 
 const SkillTreeSimulator = () => {
-  const { getNodes, getEdges, fitView, setViewport } = useReactFlow();
+  const { fitView, setViewport } = useReactFlow();
   const [nodes, setNodes] = useState<Node<SkillNodeData>[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [stats, setStats] = useState<PlayerStats>({ ascensionPoints: 100, evolutionPoints: 100 });
+  const [stats, setStats] = useState<PlayerStats>({ totalAscensionPoints: 100, totalEvolutionPoints: 100 });
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+
+  const spentPoints = useMemo(() => {
+    return nodes.reduce((acc, node) => {
+      if (node.data.isActive) {
+        acc.pa += node.data.costAscension;
+        acc.pe += node.data.costEvolution;
+      }
+      return acc;
+    }, { pa: 0, pe: 0 });
+  }, [nodes]);
+
+  const remainingStats = useMemo(() => ({
+    pa: stats.totalAscensionPoints - spentPoints.pa,
+    pe: stats.totalEvolutionPoints - spentPoints.pe
+  }), [stats, spentPoints]);
 
   const updateUnlockStatus = useCallback((currentNodes: Node<SkillNodeData>[], currentEdges: Edge[]) => {
     return currentNodes.map(node => {
@@ -123,11 +149,7 @@ const SkillTreeSimulator = () => {
         const parent = currentNodes.find(n => n.id === e.source);
         return parent?.data.isActive;
       });
-
-      return {
-        ...node,
-        data: { ...node.data, isUnlocked }
-      };
+      return { ...node, data: { ...node.data, isUnlocked } };
     });
   }, []);
 
@@ -141,24 +163,20 @@ const SkillTreeSimulator = () => {
           ...e.data, 
           sourceActive: !!sourceNode?.data.isActive,
           targetActive: !!targetNode?.data.isActive,
-          targetUnlocked: !!targetNode?.data.isUnlocked
+          targetUnlocked: !!targetNode?.data.isUnlocked,
+          sourceTier: sourceNode?.data.tier,
+          targetTier: targetNode?.data.tier
         } 
       };
     });
   }, []);
 
-  // Initialization & URL Checking
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const sharedBuild = urlParams.get('build');
     let sharedActiveIds: string[] = [];
-
     if (sharedBuild) {
-      try {
-        sharedActiveIds = JSON.parse(atob(sharedBuild));
-      } catch (e) {
-        console.error("Invalid shared build data");
-      }
+      try { sharedActiveIds = JSON.parse(atob(sharedBuild)); } catch (e) {}
     }
 
     let savedData: any = null;
@@ -168,15 +186,13 @@ const SkillTreeSimulator = () => {
     } catch (e) {}
 
     const initialNodes = INITIAL_SKILLS.map((skill) => {
-      const skillsInTier = INITIAL_SKILLS.filter(s => s.category === skill.category && s.tier === skill.tier);
-      const index = skillsInTier.indexOf(skill);
-      const pos = calculateInitialPosition(skill, skillsInTier.length, index);
-      
+      const categorySkills = INITIAL_SKILLS.filter(s => s.category === skill.category);
+      const branchNames = Array.from(new Set(categorySkills.map(s => s.name.split(" I")[0].split(" II")[0].split(" III")[0].split(" IV")[0].trim())));
+      const skillBranchName = skill.name.split(" I")[0].split(" II")[0].split(" III")[0].split(" IV")[0].trim();
+      const branchIndex = branchNames.indexOf(skillBranchName);
+      const pos = calculateInitialPosition(skill, branchNames.length, branchIndex);
       const savedNode = savedData?.nodes?.find((n: any) => n.id === skill.id);
-      const isInitiallyActive = sharedBuild 
-        ? sharedActiveIds.includes(skill.id) 
-        : (savedNode?.data?.isActive || false);
-      
+      const isInitiallyActive = sharedBuild ? sharedActiveIds.includes(skill.id) : (savedNode?.data?.isActive || false);
       return {
         id: skill.id,
         type: 'skill',
@@ -194,40 +210,35 @@ const SkillTreeSimulator = () => {
         category: INITIAL_SKILLS.find(s => s.id === conn.source)?.category,
         sourceActive: false,
         targetActive: false,
-        targetUnlocked: false
+        targetUnlocked: false,
+        sourceTier: INITIAL_SKILLS.find(s => s.id === conn.source)?.tier,
+        targetTier: INITIAL_SKILLS.find(s => s.id === conn.target)?.tier
       }
     }));
 
-    if (savedData?.stats && !sharedBuild) {
-      setStats(savedData.stats);
-    }
-
+    if (savedData?.stats && !sharedBuild) setStats(savedData.stats);
     const nodesWithStatus = updateUnlockStatus(initialNodes, initialEdges);
     const edgesWithStatus = updateEdgeStatus(nodesWithStatus, initialEdges);
-
     setNodes(nodesWithStatus);
     setEdges(edgesWithStatus);
     
     if (savedData?.viewport && !sharedBuild) {
       setViewport(savedData.viewport);
     } else {
-      setTimeout(() => fitView({ padding: 0.3, duration: 800 }), 100);
+      setTimeout(() => {
+        setViewport({ x: window.innerWidth / 2, y: window.innerHeight / 2, zoom: 0.6 });
+        fitView({ padding: 0.3, duration: 800 });
+      }, 100);
     }
-
     setIsInitialized(true);
   }, [fitView, setViewport, updateUnlockStatus, updateEdgeStatus]);
 
-  // Auto-save
   useEffect(() => {
     if (!isInitialized) return;
-    const save = {
-      nodes: nodes.map(n => ({ id: n.id, position: n.position, data: { isActive: n.data.isActive } })),
-      stats,
-    };
+    const save = { nodes: nodes.map(n => ({ id: n.id, position: n.position, data: { isActive: n.data.isActive } })), stats };
     localStorage.setItem(SAVE_KEY, JSON.stringify(save));
   }, [nodes, stats, isInitialized]);
 
-  // Notification Handler
   const showNotification = (msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 3000);
@@ -235,11 +246,7 @@ const SkillTreeSimulator = () => {
 
   const handleExport = () => {
     const activeIds = nodes.filter(n => n.data.isActive).map(n => n.id);
-    const exportData = {
-      activeIds,
-      stats,
-      version: "1.4"
-    };
+    const exportData = { activeIds, stats, version: "2.0" };
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -264,19 +271,14 @@ const SkillTreeSimulator = () => {
           if (data.activeIds && data.stats) {
             setStats(data.stats);
             setNodes(prev => {
-              const newNodes = prev.map(n => ({
-                ...n,
-                data: { ...n.data, isActive: data.activeIds.includes(n.id) }
-              }));
+              const newNodes = prev.map(n => ({ ...n, data: { ...n.data, isActive: data.activeIds.includes(n.id) } }));
               const updated = updateUnlockStatus(newNodes, edges);
               setEdges(updateEdgeStatus(updated, edges));
               return updated;
             });
-            showNotification("Build importata con successo!");
+            showNotification("Build importata!");
           }
-        } catch (err) {
-          alert("File JSON non valido.");
-        }
+        } catch (err) {}
       };
       reader.readAsText(file);
     };
@@ -294,165 +296,84 @@ const SkillTreeSimulator = () => {
   };
 
   const handleReset = useCallback(() => {
-    if (!window.confirm("Sei sicuro di voler resettare tutti i progressi? Questa azione non può essere annullata.")) return;
+    if (!window.confirm("Resettare progressi?")) return;
     localStorage.removeItem(SAVE_KEY);
     const resetNodes = INITIAL_SKILLS.map((skill) => {
-      const skillsInTier = INITIAL_SKILLS.filter(s => s.category === skill.category && s.tier === skill.tier);
-      const index = skillsInTier.indexOf(skill);
-      const pos = calculateInitialPosition(skill, skillsInTier.length, index);
-      return {
-        id: skill.id,
-        type: 'skill',
-        position: pos,
-        data: { ...skill, isActive: false, isUnlocked: skill.tier === 0 },
-      };
+      const categorySkills = INITIAL_SKILLS.filter(s => s.category === skill.category);
+      const branchNames = Array.from(new Set(categorySkills.map(s => s.name.split(" I")[0].split(" II")[0].split(" III")[0].split(" IV")[0].trim())));
+      const branchIndex = branchNames.indexOf(skill.name.split(" I")[0].split(" II")[0].split(" III")[0].split(" IV")[0].trim());
+      const pos = calculateInitialPosition(skill, branchNames.length, branchIndex);
+      return { id: skill.id, type: 'skill', position: pos, data: { ...skill, isActive: false, isUnlocked: skill.tier === 0 } };
     });
-    setStats({ ascensionPoints: 100, evolutionPoints: 100 });
+    setStats({ totalAscensionPoints: 100, totalEvolutionPoints: 100 });
     setNodes(resetNodes);
     setEdges(INITIAL_CONNECTIONS.map((conn, idx) => ({
-      id: `e-${idx}`,
-      source: conn.source,
-      target: conn.target,
-      type: 'custom',
-      data: { category: INITIAL_SKILLS.find(s => s.id === conn.source)?.category, sourceActive: false, targetActive: false, targetUnlocked: false }
+      id: `e-${idx}`, source: conn.source, target: conn.target, type: 'custom',
+      data: { category: INITIAL_SKILLS.find(s => s.id === conn.source)?.category, sourceActive: false, targetActive: false, targetUnlocked: false, sourceTier: INITIAL_SKILLS.find(s => s.id === conn.source)?.tier, targetTier: INITIAL_SKILLS.find(s => s.id === conn.target)?.tier }
     })));
     setIsMenuOpen(false);
-    showNotification("Progresso resettato.");
-    setTimeout(() => fitView({ padding: 0.3, duration: 800 }), 100);
-  }, [fitView]);
+    setTimeout(() => {
+      setViewport({ x: window.innerWidth / 2, y: window.innerHeight / 2, zoom: 0.6 });
+      fitView({ padding: 0.3, duration: 800 });
+    }, 100);
+  }, [fitView, setViewport]);
 
-  const onNodesChange: OnNodesChange = useCallback(
-    (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    []
-  );
+  const onNodesChange: OnNodesChange = useCallback((changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
+  const onEdgesChange: OnEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
+  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => setSelectedSkillId(node.id), []);
 
-  const onEdgesChange: OnEdgesChange = useCallback(
-    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    []
-  );
-
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    setSelectedSkillId(node.id);
-  }, []);
-
-  const selectedSkill = useMemo(() => 
-    nodes.find(n => n.id === selectedSkillId)?.data || null
-  , [nodes, selectedSkillId]);
-
+  const selectedSkill = useMemo(() => nodes.find(n => n.id === selectedSkillId)?.data || null, [nodes, selectedSkillId]);
   const canAfford = useMemo(() => {
     if (!selectedSkill) return false;
-    return stats.ascensionPoints >= selectedSkill.costAscension && 
-           stats.evolutionPoints >= selectedSkill.costEvolution;
-  }, [selectedSkill, stats]);
+    return remainingStats.pa >= selectedSkill.costAscension && remainingStats.pe >= selectedSkill.costEvolution;
+  }, [selectedSkill, remainingStats]);
 
   const handleLearn = useCallback((id: string) => {
     setNodes(prevNodes => {
       const nodeToLearn = prevNodes.find(n => n.id === id);
       if (!nodeToLearn || nodeToLearn.data.isActive) return prevNodes;
-      if (stats.ascensionPoints < nodeToLearn.data.costAscension || stats.evolutionPoints < nodeToLearn.data.costEvolution) return prevNodes;
-      setStats(prev => ({
-        ascensionPoints: prev.ascensionPoints - nodeToLearn.data.costAscension,
-        evolutionPoints: prev.evolutionPoints - nodeToLearn.data.costEvolution,
-      }));
+      if (remainingStats.pa < nodeToLearn.data.costAscension || remainingStats.pe < nodeToLearn.data.costEvolution) {
+        showNotification("Punti insufficienti!");
+        return prevNodes;
+      }
       const newNodes = prevNodes.map(n => n.id === id ? { ...n, data: { ...n.data, isActive: true } } : n);
-      const updatedNodesWithUnlocks = updateUnlockStatus(newNodes, edges);
-      setEdges(prevEdges => updateEdgeStatus(updatedNodesWithUnlocks, prevEdges));
+      const updated = updateUnlockStatus(newNodes, edges);
+      setEdges(prevEdges => updateEdgeStatus(updated, prevEdges));
       setSelectedSkillId(null);
-      return updatedNodesWithUnlocks;
+      return updated;
     });
-  }, [edges, updateUnlockStatus, updateEdgeStatus, stats.ascensionPoints, stats.evolutionPoints]);
+  }, [edges, updateUnlockStatus, updateEdgeStatus, remainingStats]);
 
   const handleForget = useCallback((id: string) => {
     setNodes(prevNodes => {
-      const nodesToDeactivate = new Set<string>();
-      const currentEdges = getEdges();
+      const toDeactivate = new Set<string>();
       const traverse = (nodeId: string) => {
-        nodesToDeactivate.add(nodeId);
-        const children = getOutgoers({ id: nodeId } as Node, prevNodes, currentEdges);
-        children.forEach(child => traverse(child.id));
+        toDeactivate.add(nodeId);
+        getOutgoers({ id: nodeId } as Node, prevNodes, edges).forEach(child => traverse(child.id));
       };
       traverse(id);
-      let totalAscensionRefund = 0;
-      let totalEvolutionRefund = 0;
-      const newNodes = prevNodes.map(n => {
-        if (nodesToDeactivate.has(n.id) && n.data.isActive) {
-          totalAscensionRefund += n.data.costAscension;
-          totalEvolutionRefund += n.data.costEvolution;
-          return { ...n, data: { ...n.data, isActive: false } };
-        }
-        return n;
-      });
-      setStats(prev => ({
-        ascensionPoints: prev.ascensionPoints + totalAscensionRefund,
-        evolutionPoints: prev.evolutionPoints + totalEvolutionRefund,
-      }));
-      const updatedNodesWithUnlocks = updateUnlockStatus(newNodes, currentEdges);
-      setEdges(prevEdges => updateEdgeStatus(updatedNodesWithUnlocks, prevEdges));
+      const newNodes = prevNodes.map(n => toDeactivate.has(n.id) && n.data.isActive ? { ...n, data: { ...n.data, isActive: false } } : n);
+      const updated = updateUnlockStatus(newNodes, edges);
+      setEdges(prevEdges => updateEdgeStatus(updated, prevEdges));
       setSelectedSkillId(null);
-      return updatedNodesWithUnlocks;
+      return updated;
     });
-  }, [getEdges, updateUnlockStatus, updateEdgeStatus]);
+  }, [edges, updateUnlockStatus, updateEdgeStatus]);
 
   return (
     <div className="w-full h-screen bg-[#060608] relative overflow-hidden font-inter">
-      {/* Toast Notification */}
-      {notification && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 bg-[#111] border border-[#444] text-white rounded-full font-cinzel text-xs shadow-2xl animate-bounce">
-          {notification}
-        </div>
-      )}
-
-      <SideMenu 
-        isOpen={isMenuOpen} 
-        onClose={() => setIsMenuOpen(false)}
-        onExport={handleExport}
-        onImport={handleImport}
-        onShare={handleShare}
-        onReset={handleReset}
-      />
-
-      <ControlPanel 
-        stats={stats} 
-        onStatsChange={(k, v) => setStats(p => ({ ...p, [k]: v }))} 
-        onMenuToggle={() => setIsMenuOpen(true)}
-      />
-
+      {notification && <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 bg-[#111] border border-[#444] text-white rounded-full font-cinzel text-xs shadow-2xl animate-bounce">{notification}</div>}
+      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} onExport={handleExport} onImport={handleImport} onShare={handleShare} onReset={handleReset} />
+      <ControlPanel stats={stats} remainingPA={remainingStats.pa} remainingPE={remainingStats.pe} onStatsChange={(k, v) => setStats(p => ({ ...p, [k]: v }))} onMenuToggle={() => setIsMenuOpen(true)} />
       <div className="w-full h-full relative z-10">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onNodeClick={onNodeClick}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          snapToGrid
-          snapGrid={[20, 20]}
-          fitView
-          minZoom={0.05}
-          maxZoom={2}
-          nodesConnectable={false}
-          nodesDraggable={false}
-        >
+        <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onNodeClick={onNodeClick} nodeTypes={nodeTypes} edgeTypes={edgeTypes} snapToGrid snapGrid={[20, 20]} fitView minZoom={0.05} maxZoom={2} nodesConnectable={false} nodesDraggable={false}>
           <Background color="#ffffff" variant={BackgroundVariant.Lines} gap={80} size={0.5} style={{ opacity: 0.02 }} />
           <RadialBackground />
           <Controls className="!bg-[#111] !border-[#333] !shadow-2xl" />
-          <MiniMap 
-            nodeColor={(n) => (n.data as SkillNodeData).isActive ? '#fff' : '#222'}
-            maskColor="rgba(0,0,0,0.8)"
-            style={{ height: 120, width: 160 }}
-            className="md:block hidden"
-          />
+          <MiniMap nodeColor={(n) => (n.data as SkillNodeData).isActive ? '#fff' : '#222'} maskColor="rgba(0,0,0,0.8)" style={{ height: 120, width: 160 }} className="md:block hidden" />
         </ReactFlow>
       </div>
-
-      <DetailsPanel 
-        skill={selectedSkill}
-        onClose={() => setSelectedSkillId(null)}
-        onLearn={handleLearn}
-        onForget={handleForget}
-        canAfford={canAfford}
-      />
+      <DetailsPanel skill={selectedSkill} onClose={() => setSelectedSkillId(null)} onLearn={handleLearn} onForget={handleForget} canAfford={canAfford} />
     </div>
   );
 };
