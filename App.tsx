@@ -24,9 +24,10 @@ import CustomEdge from './components/CustomEdge';
 import ControlPanel from './components/ControlPanel';
 import DetailsPanel from './components/DetailsPanel';
 import SideMenu from './components/SideMenu';
+import TableView from './components/TableView';
 import { INITIAL_SKILLS, INITIAL_CONNECTIONS } from './constants';
 import { calculateInitialPosition } from './utils/layout';
-import { SkillNodeData, PlayerStats } from './types';
+import { SkillNodeData, PlayerStats, ViewMode } from './types';
 
 // Versione v8: Layout offset-based per hitbox perfette
 const SAVE_KEY = 'ascension_path_save_v8';
@@ -121,10 +122,12 @@ const SkillTreeSimulator = () => {
   const [nodes, setNodes] = useState<Node<SkillNodeData>[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [stats, setStats] = useState<PlayerStats>({ totalAscensionPoints: 100, totalEvolutionPoints: 100 });
+  const [history, setHistory] = useState<{ nodes: Node<SkillNodeData>[], stats: PlayerStats }[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('radial');
 
   const spentPoints = useMemo(() => {
     return nodes.reduce((acc, node) => {
@@ -307,6 +310,7 @@ const SkillTreeSimulator = () => {
       return { id: skill.id, type: 'skill', position: pos, data: { ...skill, isActive: false, isUnlocked: skill.tier === 0 } };
     });
     setStats({ totalAscensionPoints: 100, totalEvolutionPoints: 100 });
+    setHistory([]);
     setNodes(resetNodes);
     setEdges(INITIAL_CONNECTIONS.map((conn, idx) => ({
       id: `e-${idx}`, source: conn.source, target: conn.target, type: 'custom', selectable: false,
@@ -329,6 +333,21 @@ const SkillTreeSimulator = () => {
     return remainingStats.pa >= selectedSkill.costAscension && remainingStats.pe >= selectedSkill.costEvolution;
   }, [selectedSkill, remainingStats]);
 
+  const saveToHistory = useCallback(() => {
+    setHistory(prev => [...prev.slice(-19), { nodes: JSON.parse(JSON.stringify(nodes)), stats: { ...stats } }]);
+  }, [nodes, stats]);
+
+  const handleUndo = useCallback(() => {
+    if (history.length === 0) return;
+    const lastState = history[history.length - 1];
+    setHistory(prev => prev.slice(0, -1));
+    setNodes(lastState.nodes);
+    setStats(lastState.stats);
+    setEdges(prevEdges => updateEdgeStatus(lastState.nodes, prevEdges));
+    setSelectedSkillId(null);
+    showNotification("Azione annullata");
+  }, [history, updateEdgeStatus]);
+
   const handleLearn = useCallback((id: string) => {
     setNodes(prevNodes => {
       const nodeToLearn = prevNodes.find(n => n.id === id);
@@ -337,16 +356,21 @@ const SkillTreeSimulator = () => {
         showNotification("Punti insufficienti!");
         return prevNodes;
       }
+      
+      saveToHistory();
+
       const newNodes = prevNodes.map(n => n.id === id ? { ...n, data: { ...n.data, isActive: true } } : n);
       const updated = updateUnlockStatus(newNodes, edges);
       setEdges(prevEdges => updateEdgeStatus(updated, prevEdges));
       setSelectedSkillId(null);
       return updated;
     });
-  }, [edges, updateUnlockStatus, updateEdgeStatus, remainingStats]);
+  }, [edges, updateUnlockStatus, updateEdgeStatus, remainingStats, saveToHistory]);
 
   const handleForget = useCallback((id: string) => {
     setNodes(prevNodes => {
+      saveToHistory();
+
       const toDeactivate = new Set<string>();
       const traverse = (nodeId: string) => {
         toDeactivate.add(nodeId);
@@ -359,39 +383,76 @@ const SkillTreeSimulator = () => {
       setSelectedSkillId(null);
       return updated;
     });
-  }, [edges, updateUnlockStatus, updateEdgeStatus]);
+  }, [edges, updateUnlockStatus, updateEdgeStatus, saveToHistory]);
+
+  const handleViewChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    setIsMenuOpen(false);
+  };
 
   return (
-    <div className="w-full h-screen bg-[#060608] relative overflow-hidden font-inter">
+    <div className="w-full h-screen bg-[#060608] relative overflow-hidden font-inter text-gray-200">
       {notification && <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 bg-[#111] border border-[#444] text-white rounded-full font-cinzel text-xs shadow-2xl animate-bounce">{notification}</div>}
-      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} onExport={handleExport} onImport={handleImport} onShare={handleShare} onReset={handleReset} />
-      <ControlPanel stats={stats} remainingPA={remainingStats.pa} remainingPE={remainingStats.pe} onStatsChange={(k, v) => setStats(p => ({ ...p, [k]: v }))} onMenuToggle={() => setIsMenuOpen(true)} />
-      <div className="w-full h-full relative z-10">
-        <ReactFlow 
+      
+      <SideMenu 
+        isOpen={isMenuOpen} 
+        onClose={() => setIsMenuOpen(false)} 
+        onExport={handleExport} 
+        onImport={handleImport} 
+        onShare={handleShare} 
+        onReset={handleReset}
+        viewMode={viewMode}
+        onViewChange={handleViewChange}
+      />
+
+      <ControlPanel 
+        stats={stats} 
+        remainingPA={remainingStats.pa} 
+        remainingPE={remainingStats.pe} 
+        onStatsChange={(k, v) => setStats(p => ({ ...p, [k]: v }))} 
+        onMenuToggle={() => setIsMenuOpen(true)}
+        onUndo={handleUndo}
+        canUndo={history.length > 0}
+        viewMode={viewMode}
+        onViewChange={handleViewChange}
+      />
+
+      {viewMode === 'radial' ? (
+        <div className="w-full h-full relative z-10">
+          <ReactFlow 
+            nodes={nodes} 
+            edges={edges} 
+            onNodesChange={onNodesChange} 
+            onEdgesChange={onEdgesChange} 
+            onNodeClick={onNodeClick} 
+            nodeTypes={nodeTypes} 
+            edgeTypes={edgeTypes} 
+            snapToGrid 
+            snapGrid={[20, 20]} 
+            fitView 
+            minZoom={0.05} 
+            maxZoom={2} 
+            nodesConnectable={false} 
+            nodesDraggable={false}
+            edgesFocusable={false}
+            edgesUpdatable={false}
+          >
+            <Background color="#ffffff" variant={BackgroundVariant.Lines} gap={80} size={0.5} style={{ opacity: 0.02 }} />
+            <RadialBackground />
+            <Controls className="!bg-[#111] !border-[#333] !shadow-2xl" showInteractive={false} />
+            <MiniMap nodeColor={(n) => (n.data as SkillNodeData).isActive ? '#fff' : '#222'} maskColor="rgba(0,0,0,0.8)" style={{ height: 120, width: 160 }} className="md:block hidden" />
+          </ReactFlow>
+          <DetailsPanel skill={selectedSkill} onClose={() => setSelectedSkillId(null)} onLearn={handleLearn} onForget={handleForget} canAfford={canAfford} />
+        </div>
+      ) : (
+        <TableView 
           nodes={nodes} 
-          edges={edges} 
-          onNodesChange={onNodesChange} 
-          onEdgesChange={onEdgesChange} 
-          onNodeClick={onNodeClick} 
-          nodeTypes={nodeTypes} 
-          edgeTypes={edgeTypes} 
-          snapToGrid 
-          snapGrid={[20, 20]} 
-          fitView 
-          minZoom={0.05} 
-          maxZoom={2} 
-          nodesConnectable={false} 
-          nodesDraggable={false}
-          edgesFocusable={false}
-          edgesUpdatable={false}
-        >
-          <Background color="#ffffff" variant={BackgroundVariant.Lines} gap={80} size={0.5} style={{ opacity: 0.02 }} />
-          <RadialBackground />
-          <Controls className="!bg-[#111] !border-[#333] !shadow-2xl" />
-          <MiniMap nodeColor={(n) => (n.data as SkillNodeData).isActive ? '#fff' : '#222'} maskColor="rgba(0,0,0,0.8)" style={{ height: 120, width: 160 }} className="md:block hidden" />
-        </ReactFlow>
-      </div>
-      <DetailsPanel skill={selectedSkill} onClose={() => setSelectedSkillId(null)} onLearn={handleLearn} onForget={handleForget} canAfford={canAfford} />
+          onLearn={handleLearn} 
+          onForget={handleForget} 
+          remainingPA={remainingStats.pa} 
+          remainingPE={remainingStats.pe} 
+        />
+      )}
     </div>
   );
 };

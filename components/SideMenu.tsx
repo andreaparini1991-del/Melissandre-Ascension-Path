@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { X, Download, Upload, Share2, Trash2, Shield } from 'lucide-react';
+import { ViewMode } from '../types';
 
 interface SideMenuProps {
   isOpen: boolean;
@@ -9,9 +10,18 @@ interface SideMenuProps {
   onImport: () => void;
   onShare: () => void;
   onReset: () => void;
+  viewMode: ViewMode;
+  onViewChange: (mode: ViewMode) => void;
 }
 
-const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onExport, onImport, onShare, onReset }) => {
+const SideMenu: React.FC<SideMenuProps> = ({ 
+  isOpen, 
+  onClose, 
+  onExport, 
+  onImport, 
+  onShare, 
+  onReset
+}) => {
   return (
     <>
       {/* Backdrop with Blur */}
@@ -39,7 +49,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onExport, onImport
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-6 space-y-8">
+        <div className="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar">
           <div>
             <h3 className="text-[10px] font-cinzel text-gray-500 uppercase tracking-[0.2em] mb-4">Build Management</h3>
             <div className="space-y-2">
@@ -71,7 +81,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onExport, onImport
             </button>
           </div>
 
-          <div className="pt-8 mt-auto">
+          <div className="pt-8">
             <button 
               onClick={onReset}
               className="w-full flex items-center gap-4 p-4 hover:bg-red-950/20 border border-[#222] hover:border-red-900/50 rounded-xl text-red-500/80 hover:text-red-500 transition-all text-sm group"
@@ -84,9 +94,14 @@ const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onExport, onImport
 
         {/* Footer */}
         <div className="p-6 border-t border-[#222] text-center">
-          <span className="text-[9px] text-gray-600 font-cinzel uppercase tracking-widest">Ascension Path v1.4</span>
+          <span className="text-[9px] text-gray-600 font-cinzel uppercase tracking-widest">Ascension Path v1.5</span>
         </div>
       </div>
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+      `}</style>
     </>
   );
 };

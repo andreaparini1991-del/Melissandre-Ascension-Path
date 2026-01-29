@@ -107,15 +107,15 @@ const SkillNode: React.FC<NodeProps<SkillNodeData>> = ({ data, selected }) => {
         )}
       </div>
 
-      {/* Label - Ora segue naturalmente nel flusso flex sotto l'icona */}
-      <div className="mt-3 text-center pointer-events-none select-none w-32 flex flex-col items-center justify-start min-h-[2.5em]">
+      {/* Label - Visibility improved, overflow allowed to prevent ellipsis */}
+      <div className="mt-3 text-center pointer-events-none select-none w-48 flex flex-col items-center justify-start min-h-[2.5em]">
         {labelLines.map((line, idx) => (
           <span 
             key={idx}
-            className="font-cinzel uppercase block leading-tight text-[10px] tracking-tighter transition-colors duration-300 whitespace-nowrap overflow-hidden text-ellipsis w-full"
+            className="font-cinzel font-bold uppercase block leading-tight text-[11px] tracking-tight transition-colors duration-300 w-full"
             style={{ 
-              color: data.isActive ? theme.primary : '#6b7280',
-              textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+              color: data.isActive ? theme.primary : (data.isUnlocked ? '#d1d5db' : '#9ca3af'),
+              textShadow: '0 0 8px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,1)'
             }}
           >
             {line}

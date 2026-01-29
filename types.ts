@@ -1,5 +1,6 @@
 
 export type SkillCategory = 'GENERAL' | 'VITAL' | 'MAGIC' | 'SKILL' | 'UTILITY' | 'EXTRA';
+export type ViewMode = 'radial' | 'table';
 
 export interface SkillNodeData {
   id: string;
