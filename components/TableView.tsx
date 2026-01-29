@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { Node } from 'reactflow';
 import { Sparkles, Zap, ShieldAlert, Lock, Play, LayoutGrid, ChevronDown, ChevronUp, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -96,7 +95,7 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
   };
 
   return (
-    <div className="w-full h-full flex flex-col pt-[72px] md:pt-28 overflow-y-auto md:overflow-hidden custom-scrollbar bg-[#060608]">
+    <div className="absolute inset-0 flex flex-col pt-[72px] md:pt-28 overflow-y-auto md:overflow-hidden custom-scrollbar bg-[#060608] overscroll-contain">
       <div className="max-w-6xl mx-auto w-full flex flex-col px-4 md:px-6 mb-4 md:mb-8 shrink-0">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
@@ -172,8 +171,8 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto w-full md:flex-1 min-h-0 px-4 md:px-6 pb-6">
-        <div className="h-full flex flex-col rounded-xl md:rounded-2xl border border-[#222] bg-[#0c0c0e]/50 backdrop-blur-sm shadow-2xl overflow-visible md:overflow-hidden">
+      <div className="max-w-6xl mx-auto w-full md:flex-1 min-h-0 px-4 md:px-6 pb-32 md:pb-6">
+        <div className="md:h-full flex flex-col rounded-xl md:rounded-2xl border border-[#222] bg-[#0c0c0e]/50 backdrop-blur-sm shadow-2xl overflow-visible md:overflow-hidden">
           <div className="md:overflow-y-auto custom-scrollbar md:h-full" style={{ WebkitOverflowScrolling: 'touch' }}>
             <table className="w-full text-left border-collapse table-auto md:table-fixed">
               <thead className="md:sticky md:top-0 bg-[#111] z-20 shadow-sm border-b border-[#222]">
