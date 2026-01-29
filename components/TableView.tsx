@@ -171,8 +171,9 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto w-full md:flex-1 min-h-0 px-4 md:px-6 pb-32 md:pb-6">
-        <div className="md:h-full flex flex-col rounded-xl md:rounded-2xl border border-[#222] bg-[#0c0c0e]/50 backdrop-blur-sm shadow-2xl overflow-visible md:overflow-hidden">
+      <div className="max-w-6xl mx-auto w-full md:flex-1 min-h-0 px-4 md:px-6">
+        {/* Table Container - Bordered and closed properly */}
+        <div className="flex flex-col rounded-xl md:rounded-2xl border border-[#222] bg-[#0c0c0e]/50 backdrop-blur-sm shadow-2xl md:overflow-hidden md:h-full">
           <div className="md:overflow-y-auto custom-scrollbar md:h-full" style={{ WebkitOverflowScrolling: 'touch' }}>
             <table className="w-full text-left border-collapse table-auto md:table-fixed">
               <thead className="md:sticky md:top-0 bg-[#111] z-20 shadow-sm border-b border-[#222]">
@@ -185,7 +186,7 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1a1a1c]">
-                {filteredNodes.map((skill) => {
+                {filteredNodes.map((skill, index) => {
                   const theme = CATEGORY_THEMES[skill.category];
                   const iconName = getIconForSkill(skill.name);
                   const IconComp = (Icons as any)[iconName] || Icons.Circle;
@@ -193,6 +194,7 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
                   const needPE = remainingPE < skill.costEvolution;
                   const canAfford = !needPA && !needPE;
                   const isExpanded = expandedIds.has(skill.id);
+                  const isLast = index === filteredNodes.length - 1;
 
                   const getLockedLabel = () => {
                     if (needPA && needPE) return 'No PA/PE';
@@ -205,7 +207,7 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
                     <React.Fragment key={skill.id}>
                       <tr 
                         onClick={() => toggleExpand(skill.id)}
-                        className={`group hover:bg-white/[0.02] transition-colors cursor-pointer ${isExpanded ? 'bg-white/[0.01]' : ''}`}
+                        className={`group hover:bg-white/[0.02] transition-colors cursor-pointer ${isExpanded ? 'bg-white/[0.01]' : ''} ${isLast && !isExpanded ? 'rounded-b-xl overflow-hidden' : ''}`}
                       >
                         <td className="px-3 md:px-6 py-4 md:py-5">
                           <div className="flex items-center gap-2 md:gap-3">
@@ -300,7 +302,7 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
                       </tr>
                       {isExpanded && (
                         <tr 
-                          className="bg-white/[0.03] transition-all" 
+                          className={`bg-white/[0.03] transition-all ${isLast ? 'rounded-b-xl overflow-hidden' : ''}`} 
                           onClick={(e) => {
                             e.stopPropagation();
                             toggleExpand(skill.id);
@@ -332,6 +334,9 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
             )}
           </div>
         </div>
+        
+        {/* Mobile Bottom Padding - Outside the table container to leave pure background space */}
+        <div className="h-40 md:hidden" aria-hidden="true" />
       </div>
       
       <style>{`
