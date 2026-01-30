@@ -1,4 +1,3 @@
-
 export type SkillCategory = 'GENERAL' | 'VITAL' | 'MAGIC' | 'SKILL' | 'UTILITY' | 'EXTRA';
 export type ViewMode = 'radial' | 'table';
 
@@ -24,6 +23,7 @@ export interface CharacterData {
   name: string;
   pa: number;
   pe: number;
+  build?: string;
 }
 
 export interface CategoryTheme {

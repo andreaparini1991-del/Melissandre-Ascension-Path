@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { X, User, Sparkles, Zap, AlertTriangle, Check, RefreshCw } from 'lucide-react';
+
+import React, { useState, useEffect } from 'react';
+import { X, User, Sparkles, Zap, AlertTriangle, Check, RefreshCw, Loader2 } from 'lucide-react';
 import { CharacterData } from '../types';
+import { INITIAL_SKILLS } from '../constants';
 
 interface CharacterModalProps {
   isOpen: boolean;
@@ -8,10 +10,34 @@ interface CharacterModalProps {
   characters: CharacterData[];
   onSelect: (char: CharacterData) => void;
   isLoading: boolean;
+  isSubmitting?: boolean;
+  purpose: 'load' | 'save';
+  activeCharacterName?: string | null;
 }
 
-const CharacterModal: React.FC<CharacterModalProps> = ({ isOpen, onClose, characters, onSelect, isLoading }) => {
+const CharacterModal: React.FC<CharacterModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  characters, 
+  onSelect, 
+  isLoading, 
+  isSubmitting = false,
+  purpose,
+  activeCharacterName
+}) => {
   const [confirmChar, setConfirmChar] = useState<CharacterData | null>(null);
+
+  // Se siamo in modalità salvataggio, impostiamo automaticamente il personaggio attivo come quello da confermare
+  useEffect(() => {
+    if (isOpen && purpose === 'save' && activeCharacterName) {
+      const activeChar = characters.find(c => c.name === activeCharacterName);
+      if (activeChar) {
+        setConfirmChar(activeChar);
+      }
+    } else if (isOpen && purpose === 'load') {
+      setConfirmChar(null);
+    }
+  }, [isOpen, purpose, activeCharacterName, characters]);
 
   if (!isOpen) return null;
 
@@ -22,8 +48,10 @@ const CharacterModal: React.FC<CharacterModalProps> = ({ isOpen, onClose, charac
   const handleConfirm = () => {
     if (confirmChar) {
       onSelect(confirmChar);
-      setConfirmChar(null);
-      onClose();
+      if (purpose === 'load') {
+        setConfirmChar(null);
+        onClose();
+      }
     }
   };
 
@@ -31,12 +59,34 @@ const CharacterModal: React.FC<CharacterModalProps> = ({ isOpen, onClose, charac
     window.location.reload();
   };
 
+  const isSaving = purpose === 'save';
+
+  // Helper per calcolare il budget totale basandosi sulla build caricata dal server
+  const getTotals = (char: CharacterData) => {
+    const buildSkills = char.build ? char.build.split(';').map(s => s.trim().replace(/"/g, '')) : [];
+    let spentPA = 0;
+    let spentPE = 0;
+    
+    buildSkills.forEach(skillName => {
+      const skill = INITIAL_SKILLS.find(s => s.name === skillName);
+      if (skill) {
+        spentPA += skill.costAscension;
+        spentPE += skill.costEvolution;
+      }
+    });
+
+    return {
+      totalPA: char.pa + spentPA,
+      totalPE: char.pe + spentPE
+    };
+  };
+
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/80 backdrop-blur-md animate-in fade-in duration-300" 
-        onClick={onClose} 
+        onClick={!isSubmitting ? onClose : undefined} 
       />
       
       {/* Modal Container */}
@@ -51,17 +101,21 @@ const CharacterModal: React.FC<CharacterModalProps> = ({ isOpen, onClose, charac
             <h2 className="font-cinzel font-bold text-lg tracking-widest text-white">CHARACTER ROSTER</h2>
           </div>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={handleRefresh}
-              className="p-2 hover:bg-white/5 rounded-full transition-colors group flex items-center gap-2"
-              title="Refresh Data"
-            >
-              <RefreshCw className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
-              <span className="hidden md:block text-[10px] font-cinzel text-gray-500 group-hover:text-white">REFRESH</span>
-            </button>
-            <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-              <X className="w-5 h-5 text-gray-500" />
-            </button>
+            {!isSubmitting && (
+              <>
+                <button 
+                  onClick={handleRefresh}
+                  className="p-2 hover:bg-white/5 rounded-full transition-colors group flex items-center gap-2"
+                  title="Refresh Data"
+                >
+                  <RefreshCw className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
+                  <span className="hidden md:block text-[10px] font-cinzel text-gray-500 group-hover:text-white">REFRESH</span>
+                </button>
+                <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -70,31 +124,54 @@ const CharacterModal: React.FC<CharacterModalProps> = ({ isOpen, onClose, charac
           {confirmChar ? (
             <div className="py-4 space-y-6 animate-in slide-in-from-bottom-4 duration-300 text-center">
               <div className="flex justify-center">
-                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-full">
-                  <AlertTriangle className="w-8 h-8 text-amber-500" />
+                <div className={`${isSaving ? 'bg-green-500/10 border-green-500/30' : 'bg-amber-500/10 border-amber-500/30'} p-4 border rounded-full`}>
+                  {isSaving ? (
+                    <Check className="w-8 h-8 text-green-500" />
+                  ) : (
+                    <AlertTriangle className="w-8 h-8 text-amber-500" />
+                  )}
                 </div>
               </div>
               <div>
-                <h3 className="text-xl font-cinzel font-bold text-white mb-2">Update Budget?</h3>
+                <h3 className="text-xl font-cinzel font-bold text-white mb-2">
+                  {isSaving ? 'Submit Build?' : 'Update Budget?'}
+                </h3>
                 <p className="text-sm text-gray-400 max-w-xs mx-auto">
-                  Are you sure you want to load the attributes for <span className="text-white font-bold">{confirmChar.name}</span>? This will overwrite your current PA and PE totals.
+                  {isSaving 
+                    ? `Are you sure you want to sync the current build for ${confirmChar.name}? All active skills and residual points will be saved to the sheet.`
+                    : `Are you sure you want to load the attributes for ${confirmChar.name}? This will overwrite your current PA and PE totals.`
+                  }
                 </p>
               </div>
               
               <div className="flex flex-col gap-3">
                 <button 
+                  disabled={isSubmitting}
                   onClick={handleConfirm}
-                  className="w-full py-4 bg-white text-black rounded-xl font-cinzel font-bold hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                  className={`w-full py-4 ${isSaving ? 'bg-green-600' : 'bg-white text-black'} rounded-xl font-cinzel font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50`}
                 >
-                  <Check size={18} strokeWidth={3} />
-                  Confirm Update
+                  {isSubmitting ? (
+                    <><Loader2 className="w-5 h-5 animate-spin" /> Sincronizzazione in corso...</>
+                  ) : (
+                    <><Check size={18} strokeWidth={3} /> {isSaving ? 'Sync Build' : 'Confirm Update'}</>
+                  )}
                 </button>
-                <button 
-                  onClick={() => setConfirmChar(null)}
-                  className="w-full py-3 bg-[#1a1a1c] text-gray-400 rounded-xl font-cinzel font-bold hover:text-white transition-all"
-                >
-                  Cancel
-                </button>
+                {!isSubmitting && !isSaving && (
+                  <button 
+                    onClick={() => setConfirmChar(null)}
+                    className="w-full py-3 bg-[#1a1a1c] text-gray-400 rounded-xl font-cinzel font-bold hover:text-white transition-all"
+                  >
+                    Cancel
+                  </button>
+                )}
+                {!isSubmitting && isSaving && (
+                  <button 
+                    onClick={onClose}
+                    className="w-full py-3 bg-[#1a1a1c] text-gray-400 rounded-xl font-cinzel font-bold hover:text-white transition-all"
+                  >
+                    Cancel
+                  </button>
+                )}
               </div>
             </div>
           ) : isLoading ? (
@@ -108,40 +185,45 @@ const CharacterModal: React.FC<CharacterModalProps> = ({ isOpen, onClose, charac
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3">
-              <p className="text-[10px] text-gray-500 font-cinzel uppercase tracking-[0.2em] mb-1">Available Characters</p>
-              {characters.map((char) => (
-                <button
-                  key={char.name}
-                  onClick={() => handleSelect(char)}
-                  className="group relative w-full p-4 bg-[#161618] hover:bg-[#1c1c1e] border border-[#222] hover:border-white/20 rounded-2xl transition-all text-left flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center border border-[#333] group-hover:border-white/30 transition-all">
-                       <User size={18} className="text-gray-500 group-hover:text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-white tracking-tight">{char.name}</h4>
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-end">
-                      <div className="flex items-center gap-1.5 text-xs text-white">
-                        <Sparkles size={10} />
-                        <span className="font-cinzel font-bold">{char.pa}</span>
+              <p className="text-[10px] text-gray-500 font-cinzel uppercase tracking-[0.2em] mb-1">
+                {isSaving ? 'Sync data for:' : 'Available Characters'}
+              </p>
+              {characters.map((char) => {
+                const totals = getTotals(char);
+                return (
+                  <button
+                    key={char.name}
+                    onClick={() => handleSelect(char)}
+                    className="group relative w-full p-4 bg-[#161618] hover:bg-[#1c1c1e] border border-[#222] hover:border-white/20 rounded-2xl transition-all text-left flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center border border-[#333] group-hover:border-white/30 transition-all">
+                         <User size={18} className="text-gray-500 group-hover:text-white" />
                       </div>
-                      <span className="text-[8px] text-gray-600 uppercase font-cinzel">PA</span>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <div className="flex items-center gap-1.5 text-xs text-blue-400">
-                        <Zap size={10} />
-                        <span className="font-cinzel font-bold">{char.pe}</span>
+                      <div>
+                        <h4 className="font-bold text-white tracking-tight">{char.name}</h4>
                       </div>
-                      <span className="text-[8px] text-gray-600 uppercase font-cinzel">PE</span>
                     </div>
-                  </div>
-                </button>
-              ))}
+                    
+                    <div className="flex gap-4">
+                      <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-1.5 text-xs text-white">
+                          <Sparkles size={10} />
+                          <span className="font-cinzel font-bold">{char.pa} <span className="text-[9px] text-gray-600 font-normal">/</span> {totals.totalPA}</span>
+                        </div>
+                        <span className="text-[8px] text-gray-600 uppercase font-cinzel">PA</span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-1.5 text-xs text-blue-400">
+                          <Zap size={10} />
+                          <span className="font-cinzel font-bold">{char.pe} <span className="text-[9px] text-gray-600 font-normal">/</span> {totals.totalPE}</span>
+                        </div>
+                        <span className="text-[8px] text-gray-600 uppercase font-cinzel">PE</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

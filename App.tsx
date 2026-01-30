@@ -26,12 +26,14 @@ import DetailsPanel from './components/DetailsPanel';
 import SideMenu from './components/SideMenu';
 import TableView from './components/TableView';
 import CharacterModal from './components/CharacterModal';
+import ResetConfirmModal from './components/ResetConfirmModal';
 import { INITIAL_SKILLS, INITIAL_CONNECTIONS } from './constants';
 import { calculateInitialPosition } from './utils/layout';
 import { SkillNodeData, PlayerStats, ViewMode, CharacterData } from './types';
 
 const SAVE_KEY = 'ascension_path_save_v8';
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQj7DBJU6sY9yVCZGqijOvr3WTLxBQSjnbhls3FR4w0ILNxaH43rsO0_p8OQxSqlwF5INCs03HZGQaw/pub?gid=7009984&single=true&output=csv';
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQj7DBJU6sY9yVCZGqijOvr3WTLxBQSjnbhls3FR4w0ILNxaH43rsO0_p8OQxSqlwF5INCs03HZGQaw/pub?gid=2078211696&single=true&output=csv';
+const FORM_ACTION_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdOGeP5_rCHFu8_SLfZieVpSfJ7VVHE1Kf0Rc8BHzelyH0smA/formResponse';
 
 const nodeTypes = {
   skill: SkillNode,
@@ -116,15 +118,19 @@ const SkillTreeSimulator = () => {
   const [nodes, setNodes] = useState<Node<SkillNodeData>[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [stats, setStats] = useState<PlayerStats>({ totalAscensionPoints: 100, totalEvolutionPoints: 100 });
+  const [activeCharacterName, setActiveCharacterName] = useState<string | null>(null);
   const [history, setHistory] = useState<{ nodes: Node<SkillNodeData>[], stats: PlayerStats }[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCharModalOpen, setIsCharModalOpen] = useState(false);
+  const [charModalPurpose, setCharModalPurpose] = useState<'load' | 'save'>('load');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [characters, setCharacters] = useState<CharacterData[]>([]);
   const [isFetchingChars, setIsFetchingChars] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('radial');
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   const fetchCharacters = useCallback(async () => {
     setIsFetchingChars(true);
@@ -132,22 +138,20 @@ const SkillTreeSimulator = () => {
       const response = await fetch(CSV_URL);
       const text = await response.text();
       const lines = text.split('\n');
-      // Skip header, parse 4 characters
       const parsed: CharacterData[] = [];
       for (let i = 1; i < lines.length; i++) {
         const parts = lines[i].split(',');
-        if (parts.length >= 3) {
+        if (parts.length >= 4) {
           parsed.push({
             name: parts[0].trim().replace(/^"|"$/g, ''),
             pa: parseInt(parts[1].trim()) || 0,
-            pe: parseInt(parts[2].trim()) || 0
+            pe: parseInt(parts[2].trim()) || 0,
+            build: parts[3].trim().replace(/^"|"$/g, '')
           });
         }
       }
-      setCharacters(parsed.slice(0, 4));
-    } catch (err) {
-      console.error("Error fetching character data", err);
-    } finally {
+      setCharacters(parsed);
+    } catch (err) {} finally {
       setIsFetchingChars(false);
     }
   }, []);
@@ -248,6 +252,8 @@ const SkillTreeSimulator = () => {
     }));
 
     if (savedData?.stats && !sharedBuild) setStats(savedData.stats);
+    if (savedData?.activeCharacterName && !sharedBuild) setActiveCharacterName(savedData.activeCharacterName);
+
     const nodesWithStatus = updateUnlockStatus(initialNodes, initialEdges);
     const edgesWithStatus = updateEdgeStatus(nodesWithStatus, initialEdges);
     setNodes(nodesWithStatus);
@@ -266,9 +272,13 @@ const SkillTreeSimulator = () => {
 
   useEffect(() => {
     if (!isInitialized) return;
-    const save = { nodes: nodes.map(n => ({ id: n.id, position: n.position, data: { isActive: n.data.isActive } })), stats };
+    const save = { 
+      nodes: nodes.map(n => ({ id: n.id, position: n.position, data: { isActive: n.data.isActive } })), 
+      stats,
+      activeCharacterName
+    };
     localStorage.setItem(SAVE_KEY, JSON.stringify(save));
-  }, [nodes, stats, isInitialized]);
+  }, [nodes, stats, activeCharacterName, isInitialized]);
 
   const showNotification = (msg: string) => {
     setNotification(msg);
@@ -277,12 +287,12 @@ const SkillTreeSimulator = () => {
 
   const handleExport = () => {
     const activeIds = nodes.filter(n => n.data.isActive).map(n => n.id);
-    const exportData = { activeIds, stats, version: "2.5" };
+    const exportData = { activeIds, stats, activeCharacterName, version: "2.5" };
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ascension_build.json`;
+    a.download = `${activeCharacterName || 'build'}_export.json`;
     a.click();
     URL.revokeObjectURL(url);
     setIsMenuOpen(false);
@@ -301,6 +311,7 @@ const SkillTreeSimulator = () => {
           const data = JSON.parse(event.target.result);
           if (data.activeIds && data.stats) {
             setStats(data.stats);
+            if (data.activeCharacterName) setActiveCharacterName(data.activeCharacterName);
             setNodes(prev => {
               const newNodes = prev.map(n => ({ ...n, data: { ...n.data, isActive: data.activeIds.includes(n.id) } }));
               const updated = updateUnlockStatus(newNodes, edges);
@@ -326,29 +337,29 @@ const SkillTreeSimulator = () => {
     setIsMenuOpen(false);
   };
 
-  const handleReset = useCallback(() => {
-    if (!window.confirm("Resettare progressi?")) return;
+  const handleExecuteReset = useCallback(() => {
     localStorage.removeItem(SAVE_KEY);
-    const resetNodes = INITIAL_SKILLS.map((skill) => {
-      const categorySkills = INITIAL_SKILLS.filter(s => s.category === skill.category);
-      const branchNames = Array.from(new Set(categorySkills.map(s => s.name.split(" I")[0].split(" II")[0].split(" III")[0].split(" IV")[0].trim())));
-      const branchIndex = branchNames.indexOf(skill.name.split(" I")[0].split(" II")[0].split(" III")[0].split(" IV")[0].trim());
-      const pos = calculateInitialPosition(skill, branchNames.length, branchIndex);
-      return { id: skill.id, type: 'skill', position: pos, data: { ...skill, isActive: false, isUnlocked: skill.tier === 0 } };
-    });
     setStats({ totalAscensionPoints: 100, totalEvolutionPoints: 100 });
+    setActiveCharacterName(null);
+
+    setNodes((prevNodes) => {
+      const resetNodes = prevNodes.map(node => ({
+        ...node,
+        data: { ...node.data, isActive: false }
+      }));
+      const updatedNodes = updateUnlockStatus(resetNodes, edges);
+      setTimeout(() => {
+        setEdges(prevEdges => updateEdgeStatus(updatedNodes, prevEdges));
+      }, 100);
+      return updatedNodes;
+    });
+
     setHistory([]);
-    setNodes(resetNodes);
-    setEdges(INITIAL_CONNECTIONS.map((conn, idx) => ({
-      id: `e-${idx}`, source: conn.source, target: conn.target, type: 'custom', selectable: false,
-      data: { category: INITIAL_SKILLS.find(s => s.id === conn.source)?.category, sourceActive: false, targetActive: false, targetUnlocked: false, sourceTier: INITIAL_SKILLS.find(s => s.id === conn.source)?.tier, targetTier: INITIAL_SKILLS.find(s => s.id === conn.target)?.tier }
-    })));
+    setSelectedSkillId(null);
+    setIsResetModalOpen(false);
     setIsMenuOpen(false);
-    setTimeout(() => {
-      setViewport({ x: window.innerWidth / 2, y: window.innerHeight / 2, zoom: 0.6 });
-      fitView({ padding: 0.2, duration: 800 });
-    }, 100);
-  }, [fitView, setViewport]);
+    showNotification("Reset Totale completato.");
+  }, [edges, updateUnlockStatus, updateEdgeStatus]);
 
   const onNodesChange: OnNodesChange = useCallback((changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
   const onEdgesChange: OnEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
@@ -383,9 +394,7 @@ const SkillTreeSimulator = () => {
         showNotification("Punti insufficienti!");
         return prevNodes;
       }
-      
       saveToHistory();
-
       const newNodes = prevNodes.map(n => n.id === id ? { ...n, data: { ...n.data, isActive: true } } : n);
       const updated = updateUnlockStatus(newNodes, edges);
       setEdges(prevEdges => updateEdgeStatus(updated, prevEdges));
@@ -397,7 +406,6 @@ const SkillTreeSimulator = () => {
   const handleForget = useCallback((id: string) => {
     setNodes(prevNodes => {
       saveToHistory();
-
       const toDeactivate = new Set<string>();
       const traverse = (nodeId: string) => {
         toDeactivate.add(nodeId);
@@ -417,9 +425,77 @@ const SkillTreeSimulator = () => {
     setIsMenuOpen(false);
   };
 
-  const handleCharacterSelect = (char: CharacterData) => {
-    setStats({ totalAscensionPoints: char.pa, totalEvolutionPoints: char.pe });
-    showNotification(`Budget caricato: ${char.name}`);
+  const handleSaveBuild = async (char: CharacterData) => {
+    setIsSubmitting(true);
+    try {
+      const activeSkillNames = nodes
+        .filter(n => n.data.isActive)
+        .map(n => n.data.name)
+        .join(';');
+
+      const params = new URLSearchParams();
+      params.append('entry.1479084945', char.name);
+      params.append('entry.1797587019', remainingStats.pa.toString());
+      params.append('entry.5389224', remainingStats.pe.toString());
+      params.append('entry.1652555228', activeSkillNames);
+
+      await fetch(FORM_ACTION_URL, {
+        method: 'POST',
+        body: params,
+        mode: 'no-cors',
+        cache: 'no-cache'
+      });
+
+      setActiveCharacterName(char.name);
+      showNotification(`Build salvata per ${char.name}!`);
+      setIsCharModalOpen(false);
+      setIsMenuOpen(false);
+    } catch (err) {
+      showNotification("Errore nel salvataggio della build.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveClick = () => {
+    if (activeCharacterName) {
+      setCharModalPurpose('save');
+      setIsCharModalOpen(true);
+    } else {
+      showNotification("Carica un personaggio prima di salvare.");
+    }
+  };
+
+  const handleCharacterModalSelect = (char: CharacterData) => {
+    if (charModalPurpose === 'load') {
+      const buildSkills = char.build ? char.build.split(';').map(s => s.trim().replace(/"/g, '')) : [];
+      let spentPA = 0;
+      let spentPE = 0;
+      
+      const newNodes = nodes.map(node => {
+        const isActive = buildSkills.includes(node.data.name);
+        if (isActive) {
+          spentPA += node.data.costAscension;
+          spentPE += node.data.costEvolution;
+        }
+        return { ...node, data: { ...node.data, isActive } };
+      });
+
+      setStats({
+        totalAscensionPoints: char.pa + spentPA,
+        totalEvolutionPoints: char.pe + spentPE
+      });
+      setActiveCharacterName(char.name);
+
+      const updated = updateUnlockStatus(newNodes, edges);
+      setNodes(updated);
+      setEdges(updateEdgeStatus(updated, edges));
+
+      showNotification(`Build sincronizzata per ${char.name}!`);
+      setIsCharModalOpen(false);
+    } else {
+      handleSaveBuild(char);
+    }
   };
 
   return (
@@ -432,18 +508,32 @@ const SkillTreeSimulator = () => {
         onExport={handleExport} 
         onImport={handleImport} 
         onShare={handleShare} 
-        onReset={handleReset}
-        onLoadCharacters={() => { setIsMenuOpen(false); setIsCharModalOpen(true); }}
+        onReset={() => setIsResetModalOpen(true)}
+        onLoadCharacters={() => { setIsMenuOpen(false); setCharModalPurpose('load'); setIsCharModalOpen(true); }}
+        onSaveClick={handleSaveClick}
         viewMode={viewMode}
         onViewChange={handleViewChange}
+        stats={stats}
+        remainingPA={remainingStats.pa}
+        remainingPE={remainingStats.pe}
+        activeCharacterName={activeCharacterName}
       />
 
       <CharacterModal 
         isOpen={isCharModalOpen} 
-        onClose={() => setIsCharModalOpen(false)} 
+        onClose={() => !isSubmitting && setIsCharModalOpen(false)} 
         characters={characters} 
-        onSelect={handleCharacterSelect}
+        onSelect={handleCharacterModalSelect}
         isLoading={isFetchingChars}
+        isSubmitting={isSubmitting}
+        purpose={charModalPurpose}
+        activeCharacterName={activeCharacterName}
+      />
+
+      <ResetConfirmModal 
+        isOpen={isResetModalOpen} 
+        onClose={() => setIsResetModalOpen(false)} 
+        onConfirm={handleExecuteReset} 
       />
 
       <ControlPanel 
