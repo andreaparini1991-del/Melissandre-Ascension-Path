@@ -499,7 +499,7 @@ const SkillTreeSimulator = () => {
   };
 
   return (
-    <div className="w-full h-screen bg-[#060608] relative overflow-hidden font-inter text-gray-200">
+    <div className="w-full h-screen bg-[#000000] relative overflow-hidden font-inter text-gray-200">
       {notification && <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 bg-[#111] border border-[#444] text-white rounded-full font-cinzel text-xs shadow-2xl animate-bounce">{notification}</div>}
       
       <SideMenu 
