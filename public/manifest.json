@@ -1,0 +1,19 @@
+{
+  "name": "Ascension Path - Skill Tree Simulator",
+  "short_name": "Ascension",
+  "description": "A dark fantasy radial skill tree simulator for character progression.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060608",
+  "theme_color": "#060608",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "orientation": "portrait",
+  "categories": ["games", "utilities"]
+}
