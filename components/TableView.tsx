@@ -130,7 +130,7 @@ const TableView: React.FC<TableViewProps> = ({ nodes, onLearn, onForget, remaini
   const isAllSelected = selectedCategories.size === 0 && selectedStatuses.size === 0;
 
   return (
-    <div className="absolute inset-0 flex flex-col pt-[72px] md:pt-28 overflow-y-auto md:overflow-hidden custom-scrollbar bg-[#000000] overscroll-contain">
+    <div className="absolute inset-0 flex flex-col pt-[72px] md:pt-28 overflow-y-auto md:overflow-hidden custom-scrollbar bg-[#060608] overscroll-contain">
       <div className="max-w-6xl mx-auto w-full flex flex-col px-4 md:px-6 mb-4 md:mb-8 shrink-0">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
